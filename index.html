@@ -255,7 +255,7 @@
     <div class="btnrow">
       <button class="primary" id="btnCalc">重新计算</button>
       <button id="btnCopy">复制结果文本</button>
-      <button id="btnPrint">打印 / 存 PDF</button>
+      <button id="btnPrint">输出报告</button>
       <button id="btnReset">恢复默认</button>
       <span id="copied">已复制 ✓</span>
     </div>
@@ -950,7 +950,116 @@ function fallback(t, done){
   catch(e){ alert('复制失败，请手动选中以下文本：\n\n'+t); }
   document.body.removeChild(ta);
 }
-$('btnPrint').onclick = function(){ window.print(); };
+/* --- 输出报告：新窗口生成含「输入参数 + 测算结果」的完整报告，可直接打印 / 另存 PDF --- */
+var RADIO_LABEL = {heatSrc:'重整器加热', oxid:'氧化剂', heatMode:'重整供热', qmode:'余热输入方式',
+  gwpPick:'GWP 口径', carbonType:'碳属性', rmode:'反算模式'};
+var CHECK_LABEL = {countGrid:'计入替代电网减排', includeCarbon:'碳收益计入经济评价'};
+var REPORT_CSS = [
+  '.report{padding:6px 0 40px}',
+  '.rep-head{border-bottom:2px solid var(--brand);padding:0 0 12px;margin:0 0 6px}',
+  '.rep-head h1{font-size:20px;margin:0 0 8px}',
+  '.rep-meta{font-size:12px;color:var(--muted);line-height:1.7}',
+  'table.rep-in{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}',
+  'table.rep-in th{text-align:left;background:#f2f8f6;color:#0b7f6e;padding:6px 10px;border:1px solid var(--line);font-size:12.5px}',
+  'table.rep-in td{padding:5px 10px;border:1px solid var(--line)}',
+  'table.rep-in td.k{width:52%;color:#33414f}',
+  'table.rep-in td.v{font-variant-numeric:tabular-nums;font-weight:600}',
+  '.rep-actions{position:fixed;top:12px;right:14px;display:flex;gap:8px;z-index:99}',
+  '.rep-actions button{box-shadow:0 2px 10px rgba(16,36,58,.12)}',
+  '@media print{.rep-actions{display:none!important}}'
+].join('\n');
+
+function buildInputSections(){
+  var res = [], groups = document.querySelectorAll('.col-in details.grp');
+  for (var gi=0; gi<groups.length; gi++){
+    var g = groups[gi], sm = g.querySelector('summary'), title='';
+    if (sm){
+      var badge = sm.querySelector('.badge');
+      title = (sm.textContent||'').trim();
+      if (badge) title = title.replace((badge.textContent||'').trim(),'').replace(/[（(]\s*[）)]/g,'').trim();
+    }
+    var items = [];
+    var rows = g.querySelectorAll('.row');
+    for (var ri=0; ri<rows.length; ri++){
+      var row = rows[ri];
+      if (row.style && row.style.display === 'none') continue;
+      var lab = row.querySelector('label'), inps = row.querySelectorAll('input,select');
+      if (!lab || !inps.length) continue;
+      var first = (lab.firstChild && lab.firstChild.nodeType===3) ? lab.firstChild.textContent : '';
+      var name = (first||'').trim() || (lab.textContent||'').trim();
+      var vals = [];
+      for (var ii=0; ii<inps.length; ii++){
+        var inp = inps[ii];
+        vals.push(inp.tagName==='SELECT'
+          ? (((inp.options[inp.selectedIndex]||{}).text)||inp.value)
+          : inp.value);
+      }
+      items.push([name, vals.join(' / ')]);
+    }
+    var rls = g.querySelectorAll('.radio-line');
+    for (var qi=0; qi<rls.length; qi++){
+      var rl = rls[qi];
+      if (rl.style && rl.style.display === 'none') continue;
+      var cb = rl.querySelector('input[type=checkbox]');
+      if (cb){
+        items.push([CHECK_LABEL[cb.id] || '选项', cb.checked ? '是' : '否']);
+        continue;
+      }
+      var ck = rl.querySelector('input:checked');
+      if (!ck) continue;
+      var pl = ck.closest ? ck.closest('label') : null;
+      items.push([RADIO_LABEL[ck.name] || '选项', pl ? pl.textContent.trim() : ck.value]);
+    }
+    if (items.length) res.push({title:title, items:items});
+  }
+  return res;
+}
+
+function buildReportHTML(){
+  var css='', st = document.getElementsByTagName('style');
+  for (var i=0;i<st.length;i++) css += st[i].innerHTML + '\n';
+  css += REPORT_CSS;
+  var secs = buildInputSections(), inHTML='';
+  for (var s=0;s<secs.length;s++){
+    inHTML += '<table class="rep-in"><thead><tr><th colspan="2">'+secs[s].title+'</th></tr></thead><tbody>';
+    for (var j=0;j<secs[s].items.length;j++){
+      inHTML += '<tr><td class="k">'+secs[s].items[j][0]+'</td><td class="v">'+secs[s].items[j][1]+'</td></tr>';
+    }
+    inHTML += '</tbody></table>';
+  }
+  var clone = document.getElementById('out').cloneNode(true);
+  var ft = clone.querySelector('#foot'); if (ft) ft.innerHTML='';
+  var al = clone.querySelector('#alertAll'); if (al && !/show/.test(al.className)) al.innerHTML='';
+  var outHTML = clone.innerHTML;
+  var now = new Date().toLocaleString('zh-CN', {hour12:false});
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<title>测算报告 · 甲烷重整制氢 · 燃料电池热电联供</title><style>'+css+'</style></head><body>'
+    + '<div class="wrap report">'
+    + '<div class="rep-actions no-print"><button class="primary" onclick="window.print()">打印 / 保存为 PDF</button>'
+    + '<button onclick="window.close()">关闭</button></div>'
+    + '<div class="rep-head"><h1>甲烷重整制氢 · 燃料电池热电联供 — 测算报告</h1>'
+    + '<div class="rep-meta">生成时间：'+now+' ｜ 工具：DESS-Calc（工业版 · 纯前端离线）<br>'
+    + '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）</div></div>'
+    + '<h2 class="sec">一、输入参数</h2>' + inHTML
+    + '<h2 class="sec">二、测算结果</h2>' + outHTML
+    + '<footer>氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'
+    + '<b>免责说明：</b>本报告为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'
+    + '甲烷电/气比 r 默认 5 kW/Nm³ 为经验值，尚待实测复核。正式报价/合同请以实测数据与厂家样本为准。</footer>'
+    + '</div></body></html>';
+}
+
+function outputReport(){
+  render();
+  var w = window.open('', '_blank');
+  if (!w || !w.document){ window.print(); return; }
+  w.document.open();
+  w.document.write(buildReportHTML());
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ try{ w.print(); }catch(e){} }, 450);
+}
+$('btnPrint').onclick = outputReport;
 $('btnCalc').onclick = render;
 $('btnReset').onclick = function(){
   Object.keys(DEFAULTS).forEach(function(k){ if($(k)) $(k).value = DEFAULTS[k]; });
