@@ -15,7 +15,7 @@ const { calcCore } = core;
 const i = {
   P: 100, eta: 0.50, h: 8000, r: 5,
   psa: 0.80, refconv: 0.90,
-  recov: 0.80, sc: 5,
+  recov: 0.80, sc: 5, heatMode: 'auto', steamSelf: 1,
   qmode: 'Q', Q: 100, steamT: 1, steamTemp: 600,
   Tin: 15, Tout: 50, etaHex: 0.75,
   pCH4: 3.20, pElec: 0.70, pWater: 4.00, pHeat: 60,
@@ -41,15 +41,17 @@ const cases = [
 
 // ⑧ 经济效益（老唐 2026-10-15 确认：投资按不含税 172.57 万；电价 0.70 元/kWh；
 //    运维 2%/年；寿命 10 年；折现率 6%）
+// ⚠ 2026-10-15 口径修正：重整改为「自热耦合」默认（不外供蒸汽，自产占比 100%）
+//    → 净补水 0 → 年水费 0，故净收益/回收期较旧版（外供蒸汽口径）略有变化
 const econ = [
   ['年发电收益 万元',  R.revElec/10000,   56.00,  0.01],
   ['年供热收益 万元',  R.revHeat/10000,   12.96,  0.01],
   ['年运维费 万元',    R.opex/10000,       3.4514, 0.01],
-  ['年净收益 万元',    R.netAnnual/10000, 14.19,  0.02],
-  ['静态回收期 年',    R.payback,         12.16,  0.05],
-  ['ROI %/年',        R.roi*100,          8.22,  0.02],
-  ['NPV 万元',        R.npv/10000,      -68.14,  0.50],
-  ['寿命期累计 万元',  R.cumProfit/10000, 141.90,  0.10],
+  ['年净收益 万元',    R.netAnnual/10000, 14.31,  0.02],
+  ['静态回收期 年',    R.payback,         12.06,  0.05],
+  ['ROI %/年',        R.roi*100,          8.29,  0.02],
+  ['NPV 万元',        R.npv/10000,      -67.26,  0.50],
+  ['寿命期累计 万元',  R.cumProfit/10000, 143.09,  0.10],
 ];
 
 console.log('=== 对照任务说明 §5 校验表（P=100kW, η=50%, r=5, 回收0.8, Q=100kW, η_hex=0.75, 15→50℃）===');
@@ -77,11 +79,19 @@ const okSteam = Math.abs(Rs.Vhot - 18) <= 0.1;
 if (!okSteam) fail++;
 console.log(`${okSteam ? '✓' : '✗'} 蒸汽1t/h→热水m³/h  计算=${Rs.Vhot.toFixed(4).padStart(10)}  期望≈     18  容差±0.1`);
 
-// 附加：警示触发 / 水账方向
-console.log('\n=== 附加一致性检查 ===');
+// 附加：警示触发 / 水账方向（自热耦合口径）
+console.log('\n=== 附加一致性检查（自热耦合 · 默认）===');
 console.log(`${R.etaAll > 0.5 ? '✓' : '✗'} 全链路效率 50.3% 触发 >50% 警示`);
-console.log(`${R.steamNeed > R.mH2ORecov ? '✓' : '✗'} 净耗水：配汽 ${R.steamNeed.toFixed(2)} kg/h > 回收产水 ${R.mH2ORecov.toFixed(2)} L/h`);
-console.log(`  净补水 = ${R.netMakeup.toFixed(2)} kg/h`);
+const okSelf = Math.abs(R.steamSelf - R.steamNeed) < 1e-9 && Math.abs(R.steamExt) < 1e-9;
+if (!okSelf) fail++;
+console.log(`${okSelf ? '✓' : '✗'} 自热耦合：自产蒸汽 ${R.steamSelf.toFixed(2)} kg/h = 蒸汽需求 ${R.steamNeed.toFixed(2)} kg/h，外供 ${R.steamExt.toFixed(2)} kg/h`);
+console.log(`${R.netMakeup === 0 ? '✓' : '✗'} 净补水 = ${R.netMakeup.toFixed(2)} kg/h（不外供 → 系统水自平衡）`);
+
+// 外供蒸汽（对比）口径：应回到老版数值
+const Rext = calcCore(Object.assign({}, i, { heatMode: 'ext' }));
+const okExt = Math.abs(Rext.netMakeup - 37.07) <= 0.05 && Math.abs(Rext.steamExt - Rext.steamNeed) < 1e-9;
+if (!okExt) fail++;
+console.log(`${okExt ? '✓' : '✗'} 外供蒸汽模式：外供 ${Rext.steamExt.toFixed(2)} kg/h，净补水 ${Rext.netMakeup.toFixed(2)} kg/h（期望≈ 37.07）`);
 const okUnit = Math.abs(R.unitCost - 0.64) <= 0.02; if (!okUnit) fail++;
 console.log(`${okUnit ? '✓' : '✗'} 单位电成本 = ${R.unitCost.toFixed(4)} 元/kWh (期望≈0.64 = 气价3.2÷气电比5；气 ${(R.costCH4/10000).toFixed(2)}万 + 水 ${(R.costWater/10000).toFixed(4)}万 / ${(R.yMWh*1000).toFixed(0)} kWh)`);
 console.log(`  理论反推甲烷 = ${R.VCH4Theory.toFixed(2)} Nm³/h`);
