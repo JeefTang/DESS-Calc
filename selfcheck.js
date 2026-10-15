@@ -19,6 +19,7 @@ const i = {
   qmode: 'Q', Q: 100, steamT: 1, steamTemp: 600,
   Tin: 15, Tout: 50, etaHex: 0.75,
   pCH4: 3.20, pElec: 0.64, pWater: 4.00, pHeat: 60,
+  inv: 195, opexRate: 0.02, life: 10, disc: 0.06, subsidy: 0,
   rmode: 'off', tgtP: 200, tgtV: 5
 };
 const R = calcCore(i);
@@ -38,6 +39,18 @@ const cases = [
   ['热水(理论) m³/h',  R.VhotTheory,  2.46,  0.01],
 ];
 
+// ⑧ 经济效益（投资 195 万含税·含前处理，运维 2%/年，寿命 10 年，折现 6%）
+const econ = [
+  ['年发电收益 万元',  R.revElec/10000,   51.20,  0.01],
+  ['年供热收益 万元',  R.revHeat/10000,   12.96,  0.01],
+  ['年运维费 万元',    R.opex/10000,       3.90,  0.01],
+  ['年净收益 万元',    R.netAnnual/10000,  8.94,  0.02],
+  ['静态回收期 年',    R.payback,         21.81,  0.05],
+  ['ROI %/年',        R.roi*100,          4.58,  0.02],
+  ['NPV 万元',        R.npv/10000,     -129.19,  0.50],
+  ['寿命期累计 万元',  R.cumProfit/10000,  89.41,  0.10],
+];
+
 console.log('=== 对照任务说明 §5 校验表（P=100kW, η=50%, r=5, 回收0.8, Q=100kW, η_hex=0.75, 15→50℃）===');
 let fail = 0;
 for (const [name, got, want, tol] of cases) {
@@ -45,6 +58,17 @@ for (const [name, got, want, tol] of cases) {
   if (!ok) fail++;
   console.log(`${ok ? '✓' : '✗'} ${name.padEnd(18)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
 }
+
+console.log('\n=== ⑧ 经济效益（投资 195 万含税·含前处理 / 运维 2%/年 / 寿命 10 年 / 折现 6%）===');
+for (const [name, got, want, tol] of econ) {
+  const ok = Math.abs(got - want) <= tol;
+  if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(18)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(8)}  容差±${tol}`);
+}
+console.log(`  IRR = ${R.irr !== null ? (R.irr*100).toFixed(2)+' %' : '无解'}（负值=按外购气价不划算）`);
+console.log(`  动态回收期 = ${R.discPayback !== null ? R.discPayback.toFixed(2)+' 年' : '>'+i.life+' 年'}`);
+const rFree = calcCore(Object.assign({}, i, { pCH4: 0 }));
+console.log(`  敏感性抽查：气价=0（自产沼气）→ 年净收益 ${(rFree.netAnnual/10000).toFixed(2)} 万元，回收期 ${rFree.payback.toFixed(2)} 年`);
 
 // 蒸汽 1 t/h（600℃→50℃）→ ≈18 m³/h
 const Rs = calcCore(Object.assign({}, i, { qmode: 'S', steamT: 1 }));
