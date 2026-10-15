@@ -304,6 +304,17 @@ function calcCore(i){
   var vN2   = vAir * 0.79;                             // Nm³/h 空气带入 N₂
   var vOxid = (i.oxid === 'o2') ? vO2 : vAir;          // Nm³/h 实际配入的氧化剂流量
 
+  // ④c 变换气（干基）组成 & 进堆氢浓度参考（化学计量估算·全转化假设）
+  //   部分 CH₄ 走催化部分氧化（CH₄+½O₂→CO+2H₂，再变换 → 每 CH₄ 得 3 H₂）；
+  //   其余走蒸汽重整（每 CH₄ 得 4 H₂）→ H₂ = V_CH4 × (4 − 2·O₂/C)
+  var cH2  = VCH4 * (4 - 2 * oc);                      // Nm³/h 化学计量氢（配 O₂ 后）
+  var cCO2 = VCH4;                                     // Nm³/h 碳→CO₂（全部碳）
+  var cN2  = (i.oxid === 'air') ? VCH4 * oc / 0.21 * 0.79 : 0;  // Nm³/h 空气带入 N₂
+  var cDry = cH2 + cCO2 + cN2;                         // Nm³/h 干基总量
+  var yH2raw = cDry > 0 ? cH2 / cDry : 0;              // 纯化前·干基 H₂（含 N₂ 稀释）
+  var yH2deN = (cH2 + cCO2) > 0 ? cH2 / (cH2 + cCO2) : 0;       // 脱氮后（仅脱 N₂，CO₂ 未脱）
+  var mH2Stoich = cH2 * 0.0899;                        // kg/h 化学计量氢质量
+
   // ⑤ 余热 -> 热水
   var Qavail;
   if (i.qmode === 'S') {
@@ -378,6 +389,8 @@ function calcCore(i){
     mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
     steamSelf:steamSelf, steamExt:steamExt,
     oc:oc, vO2:vO2, vAir:vAir, vN2:vN2, vOxid:vOxid,
+    cH2:cH2, cCO2:cCO2, cN2:cN2, cDry:cDry,
+    yH2raw:yH2raw, yH2deN:yH2deN, mH2Stoich:mH2Stoich,
     Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
     mCO2:mCO2, yCO2:yCO2,
     yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
@@ -486,13 +499,24 @@ function render(){
         'V_CH4 × O₂/C（O₂/C='+f(i.oc,2)+'）', i.oxid!=='none' ? 'hi' : '') +
     kpi(i.oxid==='o2' ? '氧化剂流量' : '空气配入', f(R.vOxid,2), 'Nm³/h',
         i.oxid==='air' ? 'O₂ ÷ 0.21' : (i.oxid==='o2' ? '纯氧直配' : '不配氧化剂')) +
-    (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '');
+    (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '') +
+    kpi('变换气·干基 H₂', f(R.yH2raw*100,1), '%',
+        '纯化前·化学计量估算（含 N₂ 稀释；未脱除时进堆浓度）', R.yH2raw<0.70 ? 'warn' : '') +
+    kpi('脱氮后·干基 H₂', f(R.yH2deN*100,1), '%',
+        '仅脱 N₂（CO₂ 未脱）；脱碳后更高', R.yH2deN>=0.70 ? 'hi' : 'warn') +
+    kpi('进堆氢浓度（参考）', (R.yH2deN>=0.70 ? '≥70' : f(R.yH2deN*100,0)), '%',
+        '协议要求 ≥70%（体积）；详见下方说明', R.yH2deN>=0.70 ? 'hi' : 'warn');
   $('feedNote').innerHTML =
     '<b>自热耦合（催化部分氧化）：</b>反应器<b>无燃烧器</b>，热量由催化床内的部分氧化反应提供，与蒸汽重整耦合，故<b>不需外供蒸汽</b>；'+
     '重整用汽由反应过程自产。配气 = 沼气(CH₄) + '+ (i.oxid==='none' ? '（不配氧化剂）' : oxName) +' + 自产蒸汽。'+
     (i.oxid==='air'
-      ? '<br>⚠️ 配空气会带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/PSA，<b>稀释富氢气</b>（产品氢 ≥70% 口径需核算）。'
+      ? '<br>⚠️ 配空气会带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/纯化，<b>稀释富氢气</b>。'
       : '') +
+    '<br><br><b>进堆氢浓度（参考）：</b>纯化前变换气（干基）H₂ ≈ <b>'+f(R.yH2raw*100,1)+'%</b>（借 N₂ 稀释）；'+
+    '经纯化单元（含<b>脱氮吸附塔</b>）脱除 N₂ 后 ≈ <b>'+f(R.yH2deN*100,1)+'%</b>，再脱碳可更高 → <b>满足协议 ≥70%（体积），CO&lt;10 ppm</b>。'+
+    '<br>⚠️ 若<b>不脱氮</b>（N₂ 全进堆），氢浓度仅 '+f(R.yH2raw*100,1)+'%，<b>达不到 ≥70%</b>；'+
+    '要无脱氮直接达标，需 O₂/C ≲ 0.16（但供热量随之下降）——故本项目配空气<u>必须</u>依靠纯化单元脱氮。'+
+    '<br>口径：化学计量估算（全转化假设）；配气 O₂/C ↑ → 氢浓度 ↓；与主口径氢耗自洽的 O₂/C ≈ 0.33。'+
     '<br>⚠️ O₂/C 默认 '+f(i.oc,2)+' 为<b>热中性估算值</b>（≈0.35~0.45，随 S/C、反应温度变化），<b>请以工艺包/实测确认</b>。';
 
   /* --- 水账 --- */
@@ -621,6 +645,8 @@ function render(){
       (i.oxid==='air' ? '（空气 '+f(R.vAir,2)+'，含 N₂ '+f(R.vN2,2)+'）' : ''),
       i.oxid==='none' ? '不配氧化剂' : '催化部分氧化供热');
   c += trow('水账校核（外供蒸汽 − 回收产水）', f(R.steamExt-R.mH2ORecov,2)+' kg/h', '净补水下限 0');
+  c += trow('进堆氢浓度（参考）', '纯化前 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%',
+      R.yH2deN>=0.70 ? '满足协议 ≥70%（体积）、CO<10 ppm' : '⚠️ 低于协议 ≥70%，需增脱氮');
   c += trow('热水热平衡校核', f(R.heatGJ,4)+' GJ/h', '@ η_hex='+f(i.etaHex,2)+' / ΔT='+f(i.Tout-i.Tin,0)+' K');
   c += '</tbody>';
   $('tblCheck').innerHTML = c;
@@ -677,6 +703,7 @@ function buildText(){
   o.push('氧化剂：'+ (i.oxid==='air' ? '空气' : (i.oxid==='o2' ? '纯氧' : '不配')) +
         '，O₂/C='+f(i.oc,2)+' → O₂ '+f(R.vO2,2)+' Nm³/h' +
         (i.oxid==='air' ? '；空气 '+f(R.vAir,2)+' Nm³/h（含 N₂ '+f(R.vN2,2)+'）' : ''));
+  o.push('进堆氢浓度（参考）：纯化前干基 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%（协议要求 ≥70%）');
   o.push('— 余热 —');
   o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
   o.push('— 碳排放 —');
