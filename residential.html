@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>民用版 · 天然气重整制氢热电联供 测算工具</title>
+<meta name="description" content="民用（别墅/自建房）天然气重整制氢热电联供测算：供暖+洗浴热负荷、补水、家用电器模块匹配、光伏综合系统、与燃气热水器经济对比。纯前端离线可用。">
+<style>
+  :root{
+    --bg:#f4f7fa; --card:#ffffff; --ink:#1b2733; --muted:#6b7c8f; --line:#e2e9f0;
+    --brand:#0b7f6e; --brand2:#0d6efd; --warn:#c0392b; --warnbg:#fdecea; --ok:#0b7f6e;
+    --chip:#eef6f4; --shadow:0 1px 2px rgba(16,36,58,.06),0 6px 20px rgba(16,36,58,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+    padding:18px 14px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  header.top{margin:0 0 16px}
+  h1{font-size:21px;margin:0 0 6px;letter-spacing:.2px}
+  h1 .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:5px;letter-spacing:0}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .nav a{font-size:12.5px;text-decoration:none;color:var(--brand);background:var(--chip);
+    border:1px solid #d6ebe5;border-radius:20px;padding:4px 12px}
+  .nav a.cur{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .layout{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .col-in{padding:6px 4px 10px}
+  .col-out{padding:14px}
+
+  details.grp{border-bottom:1px solid var(--line);padding:0 12px}
+  details.grp:last-child{border-bottom:0}
+  details.grp>summary{
+    list-style:none;cursor:pointer;padding:13px 2px;font-weight:600;font-size:14.5px;
+    display:flex;align-items:center;gap:8px;user-select:none;
+  }
+  details.grp>summary::-webkit-details-marker{display:none}
+  details.grp>summary::before{
+    content:"▸";color:var(--brand);font-size:12px;transition:transform .15s;display:inline-block;
+  }
+  details.grp[open]>summary::before{transform:rotate(90deg)}
+  .badge{margin-left:auto;font-weight:500;font-size:11px;color:var(--brand);background:var(--chip);
+    border-radius:20px;padding:2px 9px}
+  .fields{padding:2px 0 14px;display:grid;gap:11px}
+  .row{display:grid;grid-template-columns:1fr 116px;gap:10px;align-items:center}
+  .row label{font-size:13.5px;color:#33414f}
+  .row label small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35;margin-top:2px}
+  .row .u{color:var(--muted);font-weight:400}
+  input[type=number],select{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfdff;
+    font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;
+  }
+  select{text-align:left}
+  input[type=radio],input[type=checkbox]{accent-color:var(--brand)}
+  input:focus,select:focus{outline:2px solid rgba(11,127,110,.25);border-color:var(--brand)}
+  .radio-line{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:#33414f}
+  .radio-line label{display:flex;align-items:center;gap:6px;cursor:pointer}
+  .subhead{font-size:12px;color:var(--muted);margin:2px 0 -2px;font-weight:600}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:12px 12px 14px;border-top:1px solid var(--line)}
+  button{
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;
+    padding:9px 14px;font-size:13.5px;cursor:pointer;font-family:inherit;
+  }
+  button:hover{border-color:var(--brand);color:var(--brand)}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button.primary:hover{filter:brightness(1.06);color:#fff}
+
+  .alert{display:none;background:var(--warnbg);border:1px solid #f5c6c0;color:#8e2b21;
+    border-radius:12px;padding:11px 13px;font-size:12.8px;line-height:1.55;margin:0 0 12px}
+  .alert.show{display:block}
+  .alert b{color:var(--warn)}
+  .note{background:#f2f8f6;border:1px solid #d6ebe5;color:#20625a;border-radius:12px;
+    padding:10px 12px;font-size:12.5px;line-height:1.55;margin:12px 0 0}
+  .note.grey{background:#f7f9fc;border-color:var(--line);color:#4a5a6b}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fcfdff}
+  .kpi .t{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .kpi .v{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums;margin:6px 0 2px;letter-spacing:-.2px}
+  .kpi .v .u{font-size:12.5px;font-weight:500;color:var(--muted);margin-left:4px}
+  .kpi .f{font-size:11.5px;color:#93a3b4;line-height:1.4}
+  .kpi.hi{border-color:#cfe9e2;background:#f7fcfb}
+  .kpi.warn{border-color:#f5c6c0;background:var(--warnbg)}
+  .kpi.warn .v{color:var(--warn)}
+  h2.sec{font-size:13px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    margin:18px 0 10px;font-weight:650;border-top:1px dashed var(--line);padding-top:14px}
+  h2.sec:first-child{border-top:0;margin-top:0;padding-top:0}
+  table.mini{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  table.mini th,table.mini td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+  table.mini th:first-child,table.mini td:first-child{text-align:left;color:#33414f}
+  table.mini thead th{color:var(--muted);font-weight:600;font-size:12px}
+  table.mini td.neg{color:var(--warn)}
+  .mono{font-variant-numeric:tabular-nums}
+  table.app td,table.app th{padding:4px 6px}
+  table.app input{width:78px;padding:5px 7px;font-size:13px}
+  footer{margin-top:18px;font-size:11.5px;color:#8b99a9;line-height:1.6}
+  #copied{font-size:12px;color:var(--brand);display:none;margin-left:4px}
+  @media print{
+    body{background:#fff;padding:0}
+    .col-in,.btnrow,.no-print{display:none!important}
+    .layout{grid-template-columns:1fr}
+    .card{border:0;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>天然气重整制氢 · 热电联供 测算工具 <span style="color:var(--brand)">· 民用版</span>
+    <span class="sub">高端别墅 / 城镇自建房 · 供暖 + 洗浴 + 家用电器模块匹配 + 光伏综合系统 · 与燃气热水器经济对比 · 纯前端离线可用</span>
+  </h1>
+  <div class="nav no-print">
+    <a href="./index.html">工业版（百千瓦级 · 协议口径）</a>
+    <a href="./residential.html" class="cur">民用版（别墅 / 自建房）</a>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 输入区 ============ -->
+  <section class="card col-in no-print">
+
+    <details class="grp" open>
+      <summary>R1 建筑与供暖<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>房屋面积 A<small>建筑面积，含楼层的采暖和面积</small></label><div><input id="Area" type="number" value="300" step="10" min="1"></div></div>
+        <div class="row"><label>目标室内温度 T_in<small>冬季室内设计温度</small></label><div><input id="Tib" type="number" value="20" step="1"></div></div>
+        <div class="row"><label>室外设计温度 T_out<small>当地冬季采暖计算温度（严寒 -15~-25）</small></label><div><input id="Tob" type="number" value="-10" step="1"></div></div>
+        <div class="row"><label>建筑热工等级<small>综合传热系数 K，W/(m²·K)</small></label><div>
+          <select id="Ks">
+            <option value="0.6">被动式 / 超低能耗（0.6）</option>
+            <option value="0.9">新建节能别墅（0.9）</option>
+            <option value="1.2" selected>一般节能（1.2）</option>
+            <option value="1.8">老旧 / 自建房（1.8）</option>
+            <option value="2.5">保温较差（2.5）</option>
+          </select></div></div>
+        <div class="row"><label>供暖天数<small>天 / 年</small></label><div><input id="heatDays" type="number" value="150" step="5" min="0"></div></div>
+        <div class="row"><label>日均负荷率<small>%（供暖季平均负荷 / 设计负荷）</small></label><div><input id="loadF" type="number" value="55" step="1" min="0" max="100"></div></div>
+        <div class="row"><label>供回水温差 ΔT_loop<small>K（地暖 8~10，暖气片 15~20）</small></label><div><input id="dTloop" type="number" value="10" step="1" min="1"></div></div>
+        <div class="row"><label>系统水容量<small>L / kW（民用 10~20）</small></label><div><input id="vSys" type="number" value="15" step="1" min="1"></div></div>
+        <div class="row"><label>系统日补损率<small>% / 天（闭式循环，0.5~2）</small></label><div><input id="lossRate" type="number" value="1" step="0.1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>R2 生活热水 / 洗浴<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>洗浴人数<small>人</small></label><div><input id="nPeople" type="number" value="4" step="1" min="0"></div></div>
+        <div class="row"><label>每人每次用水量<small>L / 人次（淋浴 40~60）</small></label><div><input id="Vper" type="number" value="50" step="5" min="0"></div></div>
+        <div class="row"><label>洗浴水温<small>℃（混水后出水温度，40~45）</small></label><div><input id="Tshower" type="number" value="42" step="1"></div></div>
+        <div class="row"><label>进水温度<small>℃（冬季自来水温度，5~15）</small></label><div><input id="Tcw" type="number" value="10" step="1"></div></div>
+        <div class="row"><label>每人每天洗浴次数<small>次 / 人·天</small></label><div><input id="freqDay" type="number" value="1" step="0.5" min="0"></div></div>
+        <div class="row"><label>年洗浴天数<small>天 / 年</small></label><div><input id="dhwDays" type="number" value="365" step="5" min="0"></div></div>
+        <div class="row"><label>同时使用系数<small>峰值同时用水人数占比</small></label><div><input id="peakF" type="number" value="50" step="5" min="1" max="100"></div></div>
+        <div class="row"><label>单个淋浴头流量<small>L / h（6 L/min ≈ 360）</small></label><div><input id="flowHead" type="number" value="300" step="10" min="1"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>R3 家用电器与用电<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="subhead">电器清单（可改功率 / 数量，自动汇总装机功率）</div>
+        <div id="appWrap"></div>
+        <div class="row"><label>同时系数<small>计算负荷 = 装机功率 × 同时系数</small></label><div><input id="demandF" type="number" value="100" step="5" min="1" max="100"></div></div>
+        <div class="row"><label>家庭年用电量<small>kWh / 年（不含充电桩；可按下表负荷估）</small></label><div><input id="eYear" type="number" value="6000" step="500" min="0"></div></div>
+        <div class="row"><label>年等效满负荷小时<small>h（仅用于估算年用电量，参考）</small></label><div><input id="hEq" type="number" value="1200" step="100" min="0"></div></div>
+        <div class="radio-line"><label><input type="checkbox" id="hasEV"> 有家用充电桩</label></div>
+        <div class="row" id="rowEV"><label>年充电量<small>kWh / 年</small></label><div><input id="evYear" type="number" value="3000" step="500" min="0"></div></div>
+        <div class="row" id="rowEVP"><label>充电桩电价<small>元 / kWh（居民自用桩，通常高于生活电价）</small></label><div><input id="evPrice" type="number" value="0.72" step="0.01" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>R4 燃气与价格（阶梯）<span class="badge">可改</span></summary>
+      <div class="fields">
+        <div class="row"><label>燃气类型<small>城市管道天然气 / 液化石油气钢瓶</small></label><div>
+          <select id="gasType">
+            <option value="ng" selected>城市天然气（管道）</option>
+            <option value="lpg">液化石油气（钢瓶装）</option>
+          </select></div></div>
+        <div class="subhead">阶梯气价（按<span id="gasUnitTxt">月·Nm³</span>分档）</div>
+        <div class="row"><label>第一档 上限 / 单价<small>元 / 单位</small></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="gT1u" type="number" value="30" step="1" min="0"><input id="gT1p" type="number" value="2.80" step="0.05" min="0"></div></div>
+        <div class="row"><label>第二档 上限 / 单价</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="gT2u" type="number" value="50" step="1" min="0"><input id="gT2p" type="number" value="3.10" step="0.05" min="0"></div></div>
+        <div class="row"><label>第三档 单价<small>超出第二档部分</small></label><div><input id="gT3p" type="number" value="3.90" step="0.05" min="0"></div></div>
+        <div class="subhead">阶梯电价（按<span>月·kWh</span>分档）</div>
+        <div class="row"><label>第一档 上限 / 单价<small>元 / kWh</small></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="eT1u" type="number" value="240" step="10" min="0"><input id="eT1p" type="number" value="0.5583" step="0.01" min="0"></div></div>
+        <div class="row"><label>第二档 上限 / 单价</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="eT2u" type="number" value="400" step="10" min="0"><input id="eT2p" type="number" value="0.6083" step="0.01" min="0"></div></div>
+        <div class="row"><label>第三档 单价</label><div><input id="eT3p" type="number" value="0.8583" step="0.01" min="0"></div></div>
+        <div class="row"><label>余电上网电价<small>元 / kWh（分布式余电上网）</small></label><div><input id="pGrid" type="number" value="0.40" step="0.01" min="0"></div></div>
+        <div class="row"><label>水价<small>元 / m³</small></label><div><input id="pWater" type="number" value="4.00" step="0.1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>R5 屋顶光伏（可选）<span class="badge">可选</span></summary>
+      <div class="fields">
+        <div class="radio-line"><label><input type="checkbox" id="pvOn"> 加装屋顶光伏（与重整发电形成综合系统）</label></div>
+        <div class="row" id="rowPV"><label>屋顶可用面积<small>m²</small></label><div><input id="pvArea" type="number" value="60" step="5" min="0"></div></div>
+        <div class="row" id="rowPV2"><label>单位面积装机<small>W / m²（150~190）</small></label><div><input id="pvDensity" type="number" value="150" step="10" min="0"></div></div>
+        <div class="row" id="rowPV3"><label>年等效利用小时<small>h（1000~1400）</small></label><div><input id="pvHours" type="number" value="1200" step="50" min="0"></div></div>
+        <div class="row" id="rowPV4"><label>光伏自用比例<small>%（其余余电上网）</small></label><div><input id="pvSelf" type="number" value="70" step="5" min="0" max="100"></div></div>
+        <div class="row" id="rowPV5"><label>光伏造价<small>元 / W（2.5~3.5）</small></label><div><input id="pvCost" type="number" value="3.00" step="0.1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>R6 设备与运行<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>单模块功率<small>kW / 模块（设计值）</small></label><div><input id="modP" type="number" value="12.5" step="0.5" min="0.5"></div></div>
+        <div class="row"><label>设备成本<small>万元 / kW（民用默认 1.0）</small></label><div><input id="unitCost" type="number" value="1.0" step="0.1" min="0"></div></div>
+        <div class="row"><label>发电效率 η_e<small>%（按燃气 LHV 计）</small></label><div><input id="etaE" type="number" value="40" step="1" min="1" max="100"></div></div>
+        <div class="row"><label>热回收效率 η_h<small>%（可回收热 / 燃气输入）</small></label><div><input id="etaH" type="number" value="45" step="1" min="0" max="100"></div></div>
+        <div class="row"><label>供热输送效率<small>%（管网 / 换热损失，0.9~0.98）</small></label><div><input id="heatDelivery" type="number" value="95" step="1" min="1" max="100"></div></div>
+        <div class="row"><label>燃气热水器效率 η_wh<small>%（对比基准，冷凝式 90~98）</small></label><div><input id="etaWH" type="number" value="88" step="1" min="1" max="100"></div></div>
+        <div class="radio-line">
+          <label><input type="radio" name="strategy" value="heat" checked> 按供热需求运行</label>
+          <label><input type="radio" name="strategy" value="elec"> 按用电需求运行</label>
+          <label><input type="radio" name="strategy" value="manual"> 手动年运行小时</label>
+        </div>
+        <div class="row" id="rowHRun"><label>年运行小时<small>h / 年（手动模式）</small></label><div><input id="hRun" type="number" value="2000" step="100" min="0"></div></div>
+        <div class="row"><label>年运行上限 h_cap<small>h / 年（年最大运行小时）</small></label><div><input id="hCap" type="number" value="8000" step="100" min="1"></div></div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>R7 投资经济评价<span class="badge">可改</span></summary>
+      <div class="fields">
+        <div class="row"><label>年运维费率<small>% / 年（按设备投资额计）</small></label><div><input id="opexRate" type="number" value="2" step="0.5" min="0"></div></div>
+        <div class="row"><label>项目寿命期<small>年</small></label><div><input id="life" type="number" value="15" step="1" min="1"></div></div>
+        <div class="row"><label>折现率<small>% / 年</small></label><div><input id="disc" type="number" value="6" step="0.5"></div></div>
+        <div class="row"><label>年补贴 / 其他收益<small>万元 / 年（无则填 0）</small></label><div><input id="subsidy" type="number" value="0" step="0.5" min="0"></div></div>
+      </div>
+    </details>
+
+    <div class="btnrow">
+      <button class="primary" id="btnCalc">重新计算</button>
+      <button id="btnCopy">复制结果文本</button>
+      <button id="btnPrint">打印 / 存 PDF</button>
+      <button id="btnReset">恢复默认</button>
+      <span id="copied">已复制 ✓</span>
+    </div>
+  </section>
+
+  <!-- ============ 输出区 ============ -->
+  <section class="card col-out" id="out">
+    <div class="alert" id="alertAll"></div>
+
+    <h2 class="sec">核心指标</h2>
+    <div class="grid" id="gridCore"></div>
+
+    <h2 class="sec">① 供暖负荷（按面积 + 目标室温）</h2>
+    <div class="grid" id="gridHeat"></div>
+    <div class="note grey" id="heatNote"></div>
+
+    <h2 class="sec">② 生活热水 / 洗浴</h2>
+    <div class="grid" id="gridDHW"></div>
+
+    <h2 class="sec">③ 补水量对比（供暖闭式 ↔ 洗浴直排）</h2>
+    <div class="grid" id="gridWater"></div>
+    <div class="note" id="waterNote"></div>
+
+    <h2 class="sec">④ 家用电器与设备模块匹配</h2>
+    <div class="grid" id="gridLoad"></div>
+
+    <h2 class="sec">⑤ 装置能量平衡</h2>
+    <div class="grid" id="gridDev"></div>
+    <div class="note" id="devNote"></div>
+
+    <h2 class="sec">⑥ 与燃气热水器方案 · 年度账单对比</h2>
+    <table class="mini" id="tblCmp"></table>
+
+    <h2 class="sec">⑦ 经济效益（投资与回报）</h2>
+    <div class="grid" id="gridEcon"></div>
+    <table class="mini" id="tblEconInv"></table>
+
+    <h2 class="sec">⑧ 敏感性 · 静态回收期（年）</h2>
+    <table class="mini" id="tblSens"></table>
+    <div class="note" id="econNote"></div>
+
+    <h2 class="sec">校验行</h2>
+    <table class="mini" id="tblCheck"></table>
+
+    <footer class="no-print" id="foot"></footer>
+  </section>
+
+</div>
+</div>
+
+<script>
+/* ===================== 常量与计算核心（勿改口径） ===================== */
+/* ==CALC-RES-START== */
+var RC = {
+  CW: 4.18,        // kJ/(kg·K) 水比热
+  LHV_NG: 9.972,   // kWh/Nm³ 城市天然气 12T（低位热值 35.9 MJ/Nm³）
+  LHV_LPG: 12.56,  // kWh/kg  液化石油气（低位热值 45.2 MJ/kg）
+  LPG_DENS: 2.35   // kg/Nm³ 液化气气态密度（参考，1 kg ≈ 0.426 Nm³）
+};
+
+/* 阶梯计价：月用量分档。tiers = [{upTo:<月上限>, price}]，末档 upTo=Infinity */
+function tierCost(annualQty, tiers){
+  if (!(annualQty > 0)) return 0;
+  var m = annualQty / 12, cost = 0, prev = 0;
+  for (var k = 0; k < tiers.length; k++){
+    var hi = tiers[k].upTo;
+    var seg = Math.max(0, Math.min(m, hi) - prev);
+    cost += seg * tiers[k].price;
+    prev = hi;
+    if (m <= hi) break;
+  }
+  return cost * 12;
+}
+
+function calcRes(i){
+  var C = RC, R = {};
+
+  /* ---------- ① 供暖负荷 ---------- */
+  R.dTh   = i.Tib - i.Tob;                                   // K 室内外温差
+  R.Qheat = i.K * i.Area * R.dTh / 1000;                     // kW 设计热负荷
+  R.qIndex= i.K * R.dTh;                                     // W/m² 等效热指标
+  R.heatYear = R.Qheat * 24 * i.heatDays * i.loadF;          // kWh/年 供暖耗热
+  R.eqHours  = 24 * i.heatDays * i.loadF;                    // h/年 等效满负荷小时
+  R.Vloop = i.dTloop > 0 ? R.Qheat * 3.6 / (C.CW * i.dTloop) : 0;   // m³/h 循环流量
+  R.Vsys  = R.Qheat * i.vSys;                                // L 系统水容量
+  R.makeHeatDay  = R.Vsys * i.lossRate;                      // L/天 闭式补水
+  R.makeHeatYear = R.makeHeatDay * i.heatDays / 1000;        // m³/年 供暖补水（小）
+
+  /* ---------- ② 生活热水 / 洗浴 ---------- */
+  R.dTdhw = i.Tshower - i.Tcw;                                        // K
+  R.perUse= i.Vper * C.CW * R.dTdhw / 3600;                           // kWh/人次
+  R.dhwDay= R.perUse * i.nPeople * i.freqDay;                         // kWh/天
+  R.dhwVolDay = i.Vper * i.nPeople * i.freqDay;                       // L/天
+  R.dhwYear = R.dhwDay * i.dhwDays;                                   // kWh/年
+  R.dhwVolYear = R.dhwVolDay * i.dhwDays / 1000;                      // m³/年（直排=补水量，大）
+  R.heads  = Math.max(1, Math.ceil(i.nPeople * i.peakF));
+  R.peakFlow = R.heads * i.flowHead;                                  // L/h 峰值流量
+  R.QdhwPeak = R.peakFlow * C.CW * R.dTdhw / 3600;                    // kW 峰值热负荷
+  R.dhwVolYearWhole = R.dhwVolYear;                                   // 洗浴直排补水（全部）
+
+  /* ---------- ③ 用电负荷与模块 ---------- */
+  R.Papp  = i.appliances.reduce(function(s,a){ return s + (a.q || 0) * (a.p || 0); }, 0);  // kW 装机功率
+  R.Pload = R.Papp * i.demandF;                                        // kW 计算负荷
+  R.Nmod  = Math.max(1, Math.ceil(R.Pload / i.modP - 1e-9));           // 模块数（≥1）
+  R.Pinst = R.Nmod * i.modP;                                           // kW 装置装机电功率
+  R.capOk = R.Pinst >= R.Pload - 1e-9;
+  R.Eyear = i.eYear;                                                   // kWh/年 家庭用电（不含充电桩）
+  R.Echarge = i.hasEV ? i.evYear : 0;                                  // kWh/年 充电桩
+  R.Edmd = R.Eyear + R.Echarge;                                        // kWh/年 总电需求
+  R.eYearEst = R.Pload * i.hEq;                                        // kWh/年 按负荷估算（参考）
+
+  /* ---------- 燃气常量 ---------- */
+  R.isLPG = (i.gasType === 'lpg');
+  R.gasUnit = R.isLPG ? 'kg' : 'Nm³';
+  R.LHV = R.isLPG ? C.LHV_LPG : C.LHV_NG;
+
+  /* ---------- ④ 运行小时（策略） ---------- */
+  R.heatNeed = R.heatYear + R.dhwYear;                       // kWh/年 总热需求
+  var hRun;
+  if (i.strategy === 'manual') hRun = i.hRun;
+  else if (i.strategy === 'elec') hRun = R.Pinst > 0 ? R.Edmd / R.Pinst : 0;
+  else hRun = (i.etaE>0 && i.etaH>0 && i.heatDelivery>0)
+      ? (R.heatNeed * i.etaE) / (R.Pinst * i.etaH * i.heatDelivery) : 0;   // 按热需求
+  R.hRunRaw = hRun;
+  R.hRun = Math.min(hRun, i.hCap);
+
+  /* ---------- 装置出力 ---------- */
+  R.Egen = R.Pinst * R.hRun;                                 // kWh/年 年发电量
+  R.FgasKwh = i.etaE > 0 ? R.Egen / i.etaE : 0;              // kWh/年 燃气输入
+  R.Qrec = R.FgasKwh * i.etaH;                               // kWh/年 回收热
+  R.Qsup = R.Qrec * i.heatDelivery;                          // kWh/年 可用供热
+  R.FgasQty = R.FgasKwh / R.LHV;                             // Nm³ 或 kg
+  R.FgasHour = R.hRun > 0 ? R.FgasQty / R.hRun : 0;          // 单位/ h
+
+  /* ---------- 电平衡 ---------- */
+  R.Eself = Math.min(R.Egen, R.Edmd);
+  R.Esur  = Math.max(0, R.Egen - R.Edmd);                    // 余电（上网）
+  R.Rd    = Math.max(0, R.Edmd - R.Egen);                    // 剩余电需求（待光伏/电网）
+
+  /* ---------- 光伏 ---------- */
+  R.Ppv = i.pvOn ? i.pvArea * i.pvDensity / 1000 : 0;        // kW
+  R.Epv = i.pvOn ? R.Ppv * i.pvHours : 0;                    // kWh/年
+  R.EpvSelf = i.pvOn ? Math.min(R.Epv * i.pvSelf, R.Rd) : 0; // 光伏自用
+  R.EpvGrid = i.pvOn ? (R.Epv - R.EpvSelf) : 0;              // 光伏上网
+  R.Ebuy = Math.max(0, R.Rd - R.EpvSelf);                    // 电网购电
+  R.GridOut = R.Esur + R.EpvGrid;                            // 总上网电量
+  R.PpvCost = R.Ppv * 1000 * i.pvCost;                       // 元 光伏投资
+
+  /* ---------- 热平衡 ---------- */
+  R.heatSup = Math.min(R.Qsup, R.heatNeed);                  // 装置供热
+  R.heatGap = Math.max(0, R.heatNeed - R.heatSup);           // 缺口 → 热水器补
+  R.covHeat = R.heatNeed > 0 ? R.heatSup / R.heatNeed : 0;   // 供热覆盖率
+  R.FgapKwh = i.etaWH > 0 ? R.heatGap / i.etaWH : 0;         // kWh/年 缺口气
+  R.FgapQty = R.FgapKwh / R.LHV;                             // 单位/年
+
+  /* ---------- 费用：装置方案 ---------- */
+  R.FgasTotal = R.FgasQty + R.FgapQty;                       // 装置方案总燃气（合并计阶梯）
+  R.costGasDev = tierCost(R.FgasTotal, i.gasTiers);
+  // 购电（家庭部分走阶梯，充电桩部分走充电桩电价）
+  var buyHome = Math.min(R.Ebuy, R.Eyear);
+  var buyEV   = Math.max(0, R.Ebuy - R.Eyear);
+  R.costBuyHome = tierCost(buyHome, i.elecTiers);
+  R.costBuyEV   = buyEV * i.evPrice;
+  R.costElecBuy = R.costBuyHome + R.costBuyEV;
+  R.costWater = (R.makeHeatYear + R.dhwVolYear) * i.pWater;
+  R.invDev = R.Pinst * i.unitCost;                           // 万元
+  R.opex = R.invDev * 10000 * i.opexRate;                    // 元/年
+  R.costGridOutRev = R.GridOut * i.pGrid;                    // 元/年 上网收入
+  R.costDevTotal = R.costGasDev + R.costElecBuy + R.costWater + R.opex - R.costGridOutRev;
+
+  /* ---------- 费用：基准方案（燃气热水器 + 电网购电） ---------- */
+  R.costElecBase = tierCost(R.Eyear, i.elecTiers) + R.Echarge * i.evPrice;
+  R.FbaseHeatQty = i.etaWH > 0 ? (R.heatNeed / i.etaWH) / R.LHV : 0;
+  R.costGasBase = tierCost(R.FbaseHeatQty, i.gasTiers);
+  R.costWaterBase = R.costWater;                             // 用水量相同
+  R.costBaseTotal = R.costElecBase + R.costGasBase + R.costWaterBase + (0.8 * 10000 * i.opexRate); // 热水器运维≈0.8万×费率
+
+  /* ---------- 投资与回报 ---------- */
+  R.invTotal = R.invDev * 10000 + R.PpvCost;                 // 元
+  R.saveAnnual = R.costBaseTotal - R.costDevTotal;           // 元/年 年节省（含补贴另加）
+  R.saveAnnual = R.saveAnnual + (i.subsidy || 0) * 10000;
+  R.payback = R.saveAnnual > 0 ? R.invTotal / R.saveAnnual : Infinity;
+  R.roi = R.invTotal > 0 ? R.saveAnnual / R.invTotal : 0;
+  var life = i.life, disc = i.disc;
+  var npv = -R.invTotal, cum = 0, prevDisc = -R.invTotal, discPayback = null;
+  for (var y = 1; y <= life; y++){
+    var dcf = R.saveAnnual / Math.pow(1 + disc, y);
+    cum += R.saveAnnual; npv += dcf;
+    var curDisc = prevDisc + dcf;
+    if (discPayback === null && dcf > 0 && curDisc >= 0) discPayback = (y - 1) + (-prevDisc) / dcf;
+    prevDisc = curDisc;
+  }
+  R.npv = npv; R.cumProfit = cum; R.discPayback = discPayback;
+  var irr = null;
+  function npvAt(rate){ var v = -R.invTotal; for (var k = 1; k <= life; k++) v += R.saveAnnual / Math.pow(1 + rate, k); return v; }
+  if (R.saveAnnual > 0 && R.invTotal > 0){
+    var lo = -0.9, hi = 10;
+    if (npvAt(lo) > 0 && npvAt(hi) < 0){
+      for (var s = 0; s < 120; s++){ var mid = (lo + hi) / 2; if (npvAt(mid) > 0) lo = mid; else hi = mid; }
+      irr = (lo + hi) / 2;
+    }
+  }
+  R.irr = irr;
+
+  /* ---------- 单位热水成本（燃气热水器基准 & 装置边际） ---------- */
+  R.whCostGJ = (1 / (i.etaWH * R.LHV)) * 1000;               // 单位/ GJ 需燃气量... 见下（以 GJ 计）
+  R.whPerM3Cost = (1 * 1000 * C.CW * R.dTdhw / 3600) / i.etaWH; // kWh 燃气/ m³热水
+  R.whPerM3Qty = R.whPerM3Cost / R.LHV;                      // 单位/ m³热水
+  R.whPerM3Yuan = R.whPerM3Qty * (i.gasTiers ? i.gasTiers[i.gasTiers.length-1].price : 0);
+
+  /* ---------- 综合效率 ---------- */
+  R.etaAll = i.etaE + i.etaH;
+  R.gasCostPerKwhElec = R.LHV > 0 ? (i.gasTiers ? i.gasTiers[0].price : 0) / (R.LHV * i.etaE) : 0;
+  R.avgBuyPrice = R.Ebuy > 0 ? R.costElecBuy / R.Ebuy : 0;
+
+  return R;
+}
+/* ==CALC-RES-END== */
+
+/* ===================== 页面逻辑 ===================== */
+var $ = function(id){ return document.getElementById(id); };
+var num = function(id, d){ var v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+var pctv = function(id, d){ return num(id, d*100)/100; };
+var f = function(v, n){ if(!isFinite(v)) return '—';
+  return v.toLocaleString('zh-CN', {minimumFractionDigits:n, maximumFractionDigits:n}); };
+
+var APPLIANCES = [
+  {n:'电视',       p:0.20, q:2},
+  {n:'冰箱',       p:0.15, q:1},
+  {n:'空调（单台）', p:2.50, q:2},
+  {n:'洗衣机',     p:0.50, q:1},
+  {n:'干衣机',     p:2.00, q:0},
+  {n:'电饭煲',     p:1.00, q:1},
+  {n:'电磁炉',     p:2.20, q:1},
+  {n:'微波炉',     p:1.20, q:0},
+  {n:'洗碗机',     p:1.50, q:0},
+  {n:'电脑',       p:0.30, q:2},
+  {n:'照明',       p:0.30, q:1},
+  {n:'抽油烟机',   p:0.25, q:1},
+  {n:'新风 / 净化', p:0.10, q:1},
+  {n:'其他',       p:0.50, q:1}
+];
+
+var DEFAULTS = {
+  Area:300, Tib:20, Tob:-10, heatDays:150, loadF:55, dTloop:10, vSys:15, lossRate:1,
+  nPeople:4, Vper:50, Tshower:42, Tcw:10, freqDay:1, dhwDays:365, peakF:50, flowHead:300,
+  demandF:100, eYear:6000, hEq:1200, evYear:3000, evPrice:0.72,
+  gT1u:30, gT1p:2.80, gT2u:50, gT2p:3.10, gT3p:3.90,
+  eT1u:240, eT1p:0.5583, eT2u:400, eT2p:0.6083, eT3p:0.8583,
+  pGrid:0.40, pWater:4.00,
+  pvArea:60, pvDensity:150, pvHours:1200, pvSelf:70, pvCost:3.00,
+  modP:12.5, unitCost:1.0, etaE:40, etaH:45, heatDelivery:95, etaWH:88, hRun:2000, hCap:8000,
+  opexRate:2, life:15, disc:6, subsidy:0
+};
+
+function renderAppliances(){
+  var h = '<table class="mini app"><thead><tr><th>电器</th><th>功率kW</th><th>数量</th><th>小计kW</th></tr></thead><tbody>';
+  APPLIANCES.forEach(function(a, idx){
+    h += '<tr><td>'+a.n+'</td>'+
+      '<td><input class="appP" data-i="'+idx+'" type="number" step="0.05" min="0" value="'+a.p+'"></td>'+
+      '<td><input class="appQ" data-i="'+idx+'" type="number" step="1" min="0" value="'+a.q+'"></td>'+
+      '<td class="mono" id="appS'+idx+'">0.00</td></tr>';
+  });
+  h += '</tbody></table>';
+  $('appWrap').innerHTML = h;
+}
+
+function syncAppliances(){
+  var tot = 0;
+  APPLIANCES.forEach(function(a, idx){
+    var pe = document.querySelector('.appP[data-i="'+idx+'"]');
+    var qe = document.querySelector('.appQ[data-i="'+idx+'"]');
+    var p = pe ? (parseFloat(pe.value) || 0) : a.p;
+    var q = qe ? (parseFloat(qe.value) || 0) : a.q;
+    a.p = p; a.q = q;
+    var s = p * q; tot += s;
+    var el = $('appS' + idx); if (el) el.textContent = s.toFixed(2);
+  });
+  return tot;
+}
+
+function readTiers(){
+  return [
+    {upTo:num('gT1u',30), price:num('gT1p',2.80)},
+    {upTo:num('gT2u',50), price:num('gT2p',3.10)},
+    {upTo:Infinity,       price:num('gT3p',3.90)}
+  ];
+}
+function readETiers(){
+  return [
+    {upTo:num('eT1u',240), price:num('eT1p',0.5583)},
+    {upTo:num('eT2u',400), price:num('eT2p',0.6083)},
+    {upTo:Infinity,        price:num('eT3p',0.8583)}
+  ];
+}
+
+function readInputs(){
+  var kSel = document.getElementById('Ks');
+  return {
+    Area:num('Area',300), K:parseFloat(kSel.value)||1.2, Tib:num('Tib',20), Tob:num('Tob',-10),
+    heatDays:num('heatDays',150), loadF:pctv('loadF',0.55), dTloop:num('dTloop',10),
+    vSys:num('vSys',15), lossRate:num('lossRate',1)/100,
+    nPeople:num('nPeople',4), Vper:num('Vper',50), Tshower:num('Tshower',42), Tcw:num('Tcw',10),
+    freqDay:num('freqDay',1), dhwDays:num('dhwDays',365), peakF:num('peakF',50)/100, flowHead:num('flowHead',300),
+    appliances:APPLIANCES, demandF:num('demandF',100)/100, eYear:num('eYear',6000), hEq:num('hEq',1200),
+    hasEV:$('hasEV').checked, evYear:num('evYear',3000), evPrice:num('evPrice',0.72),
+    gasType:document.getElementById('gasType').value,
+    gasTiers:readTiers(), elecTiers:readETiers(),
+    pGrid:num('pGrid',0.40), pWater:num('pWater',4.00),
+    pvOn:$('pvOn').checked, pvArea:num('pvArea',60), pvDensity:num('pvDensity',150),
+    pvHours:num('pvHours',1200), pvSelf:num('pvSelf',70)/100, pvCost:num('pvCost',3.00),
+    modP:num('modP',12.5), unitCost:num('unitCost',1.0),
+    etaE:num('etaE',40)/100, etaH:num('etaH',45)/100, heatDelivery:num('heatDelivery',95)/100,
+    etaWH:num('etaWH',88)/100,
+    strategy:(document.querySelector('input[name=strategy]:checked')||{}).value || 'heat',
+    hRun:num('hRun',2000), hCap:num('hCap',8000),
+    opexRate:num('opexRate',2)/100, life:num('life',15), disc:num('disc',6)/100, subsidy:num('subsidy',0)
+  };
+}
+
+function kpi(t, v, u, formula, cls){
+  return '<div class="kpi '+(cls||'')+'"><div class="t">'+t+'</div><div class="v">'+v+
+         (u?'<span class="u">'+u+'</span>':'')+'</div><div class="f">'+formula+'</div></div>';
+}
+function money(yuan){ return f(yuan/10000, 2); }  // 元 → 万元(2位)
+
+function render(){
+  syncAppliances();
+  var i = readInputs();
+  var R = calcRes(i);
+
+  /* 警示 */
+  var a = $('alertAll'), msgs = [];
+  if (R.etaAll > 0.95) msgs.push('<b>⚠ 综合效率 '+(R.etaAll*100).toFixed(0)+'% 偏高</b>（η_e+η_h），请复核电/热效率取值。');
+  if (!R.capOk) msgs.push('<b>⚠ 模块容量不足</b>：装机 '+f(R.Pinst,1)+' kW < 计算负荷 '+f(R.Pload,2)+' kW。');
+  if (R.saveAnnual < 0) msgs.push('<b>⚠ 当前假设下年支出高于基准方案（年节省为负）</b>：回收期无解。可调低气价 / 提高电价 / 降低设备造价，或加装光伏改善。');
+  if (msgs.length){ a.className='alert show'; a.innerHTML = msgs.join('<br>'); } else { a.className='alert'; }
+
+  /* 核心指标 */
+  $('gridCore').innerHTML =
+    kpi('供暖设计热负荷', f(R.Qheat,2), 'kW', f(i.K,2)+' × '+f(i.Area,0)+'m² × '+f(R.dTh,0)+'K', 'hi') +
+    kpi('生活热水年耗热', f(R.dhwYear,0), 'kWh/年', f(i.nPeople,0)+'人 × '+f(i.Vper,0)+'L × '+f(i.dhwDays,0)+'天') +
+    kpi('家用电器计算负荷', f(R.Pload,2), 'kW', '装机 '+f(R.Papp,2)+' kW × 同时系数 '+f(i.demandF,2), 'hi') +
+    kpi('设备模块数', f(R.Nmod,0), '台', '⌈'+f(R.Pload,2)+' ÷ '+f(i.modP,1)+'⌉ → 装机 '+f(R.Pinst,1)+' kW') +
+    kpi('装置年发电量', f(R.Egen,0), 'kWh/年', '装机 '+f(R.Pinst,1)+' kW × '+f(R.hRun,0)+' h') +
+    kpi('年节省（vs 燃气热水器）', money(R.saveAnnual), '万元/年', '基准支出 − 装置支出', R.saveAnnual>0?'hi':'warn') +
+    kpi('静态回收期', isFinite(R.payback)? f(R.payback,1) : '∞', '年', '投资 '+money(R.invTotal)+' 万 ÷ 年节省', (isFinite(R.payback)&&R.payback<=i.life)?'hi':'warn') +
+    kpi('系统综合效率', f(R.etaAll*100,0), '%', 'η_e '+f(i.etaE*100,0)+'% + η_h '+f(i.etaH*100,0)+'%');
+
+  /* 供暖 */
+  $('gridHeat').innerHTML =
+    kpi('室内外温差 ΔT', f(R.dTh,1), 'K', '目标室温 '+f(i.Tib,0)+'℃ − 室外 '+f(i.Tob,0)+'℃') +
+    kpi('等效热指标 q', f(R.qIndex,1), 'W/m²', 'q = K × ΔT（参考：节能 30~60，一般 60~100）') +
+    kpi('供暖设计热负荷', f(R.Qheat,2), 'kW', 'Q = K × A × ΔT ÷ 1000', 'hi') +
+    kpi('供暖季耗热量', f(R.heatYear,0), 'kWh/年', f(i.heatDays,0)+' 天 × 日均负荷率 '+f(i.loadF*100,0)+'%') +
+    kpi('等效满负荷小时', f(R.eqHours,0), 'h/年', '24 × '+f(i.heatDays,0)+' × '+f(i.loadF,2)) +
+    kpi('供暖循环流量', f(R.Vloop,2), 'm³/h', 'Q×3.6 ÷ (4.18 × ΔT_loop '+f(i.dTloop,0)+'K)') +
+    kpi('供暖热水热量', f(R.heatYear/3.6,0), 'MJ/年', '供暖季热量（÷3.6 换算）');
+  $('heatNote').innerHTML = '供暖为<b>闭式循环</b>：热水在系统内循环，只补充蒸发/泄漏损失（见下方补水量对比），补水极少。'+
+    '若需要供暖热水出水温度，可参考循环供水温度 45~55℃（地暖）/ 60~75℃（暖气片）。';
+
+  /* 生活热水 */
+  $('gridDHW').innerHTML =
+    kpi('单人次耗热', f(R.perUse,3), 'kWh/人次', f(i.Vper,0)+'L × 4.18 × '+f(R.dTdhw,0)+'K ÷ 3600') +
+    kpi('日热水用量', f(R.dhwVolDay,0), 'L/天', f(i.nPeople,0)+'人 × '+f(i.freqDay,1)+' 次') +
+    kpi('日热水耗热', f(R.dhwDay,2), 'kWh/天', '单人次 × 人数 × 次数') +
+    kpi('年热水耗热', f(R.dhwYear,0), 'kWh/年', f(i.dhwDays,0)+' 天', 'hi') +
+    kpi('年热水用量', f(R.dhwVolYear,0), 'm³/年', f(R.dhwVolDay,0)+' L/天 × '+f(i.dhwDays,0)+' 天') +
+    kpi('峰值热水负荷', f(R.QdhwPeak,2), 'kW', f(R.heads,0)+' 个淋浴头 × '+f(i.flowHead,0)+' L/h（建议配储水罐削峰）', 'hi');
+
+  /* 补水对比 */
+  var ratio = R.makeHeatYear > 0 ? (R.dhwVolYear / R.makeHeatYear) : Infinity;
+  $('gridWater').innerHTML =
+    kpi('供暖补水（闭式·小）', f(R.makeHeatYear,2), 'm³/年', '系统水容量 '+f(R.Vsys,0)+' L × 补损 '+f(i.lossRate*100,2)+'%/天', 'hi') +
+    kpi('洗浴补水（直排·大）', f(R.dhwVolYear,0), 'm³/年', f(R.dhwVolDay,0)+' L/天 × '+f(i.dhwDays,0)+' 天（水用后直接排掉）', 'warn') +
+    kpi('两者倍数', isFinite(ratio)? f(ratio,0) : '∞', '倍', '洗浴补水 ÷ 供暖补水') +
+    kpi('年补水合计', f(R.makeHeatYear + R.dhwVolYear,0), 'm³/年', '供暖补水 + 洗浴补水') +
+    kpi('日补水合计', f(R.makeHeatDay + R.dhwVolDay,1), 'L/天', '供暖 '+f(R.makeHeatDay,2)+' + 洗浴 '+f(R.dhwVolDay,0));
+  $('waterNote').innerHTML = '<b>补水量口径：</b>① 供暖热水<b>循环回系统</b>，补水仅为系统水容量 × 日补损率（极少，'+f(R.makeHeatYear,2)+' m³/年）；'+
+    '② 洗浴用水<b>用后直排</b>（不回收），按用水量 1:1 全部补水（'+f(R.dhwVolYear,0)+' m³/年，约为供暖补水的 '+ (isFinite(ratio)? f(ratio,0):'∞') +' 倍）。'+
+    '两者相差很大，水费主要来自洗浴用水。';
+
+  /* 用电与模块 */
+  $('gridLoad').innerHTML =
+    kpi('电器装机总功率', f(R.Papp,2), 'kW', '清单各电器 功率 × 数量 求和') +
+    kpi('同时系数', f(i.demandF*100,0), '%', '家中同时使用的比例') +
+    kpi('计算负荷', f(R.Pload,2), 'kW', '装机 × 同时系数', 'hi') +
+    kpi('单模块功率', f(i.modP,1), 'kW', '设备设计值') +
+    kpi('所需模块数', f(R.Nmod,0), '台', '⌈计算负荷 ÷ 单模块功率⌉（最少 1 台）', 'hi') +
+    kpi('装置装机电功率', f(R.Pinst,1), 'kW', f(R.Nmod,0)+' 台 × '+f(i.modP,1)+' kW') +
+    kpi('家庭年用电量', f(R.Eyear,0), 'kWh/年', '输入值（按负荷估参考 '+f(R.eYearEst,0)+' kWh）') +
+    (i.hasEV ? kpi('充电桩年用电', f(R.Echarge,0), 'kWh/年', '@ '+f(i.evPrice,2)+' 元/kWh（高于生活电价）') : '');
+
+  /* 装置能量平衡 */
+  $('gridDev').innerHTML =
+    kpi('年运行小时', f(R.hRun,0), 'h/年', i.strategy==='heat' ? '按供热需求反推（上限 '+f(i.hCap,0)+' h）' : (i.strategy==='elec' ? '按用电需求反推' : '手动设定')) +
+    kpi('年发电量', f(R.Egen,0), 'kWh/年', '装机 '+f(R.Pinst,1)+' kW × 运行 '+f(R.hRun,0)+' h', 'hi') +
+    kpi('年耗气量', f(R.FgasQty,1), R.gasUnit+'/年', f(i.gasType==='lpg'?'液化气 LHV 12.56 kWh/kg':'天然气 LHV 9.972 kWh/Nm³')) +
+    kpi('小时耗气量', f(R.FgasHour,2), R.gasUnit+'/h', '年耗气 ÷ 年运行小时') +
+    kpi('年可回收热', f(R.Qrec,0), 'kWh/年', '燃气输入 '+f(R.FgasKwh,0)+' kWh × η_h '+f(i.etaH*100,0)+'%') +
+    kpi('年实际供热', f(R.heatSup,0), 'kWh/年', '可回收热 × 输送效率 '+f(i.heatDelivery*100,0)+'%', 'hi') +
+    kpi('供热覆盖率', f(R.covHeat*100,0), '%', '装置供热 ÷ 总热需求 '+f(R.heatNeed,0)+' kWh') +
+    kpi('电力自给', f(R.Eself,0), 'kWh/年', R.Esur>0 ? ('余电上网 '+f(R.Esur,0)+' kWh') : ('电网补电 '+f(R.Ebuy,0)+' kWh')) +
+    (R.GridOut>0 ? kpi('余电上网（含光伏）', f(R.GridOut,0), 'kWh/年', '装置余电 '+f(R.Esur,0)+' + 光伏上网 '+f(R.EpvGrid,0)+'，@ '+f(i.pGrid,2)+' 元/kWh') : '');
+  $('devNote').innerHTML = '装置为<b>天然气重整制氢 + 燃料电池热电联供</b>：燃气输入按发电效率 η_e 折电（燃料输入 = 年发电量 ÷ η_e），'+
+    '同时回收 η_h 的余热供热。热需求（供暖+洗浴）'+f(R.heatNeed,0)+' kWh/年，装置覆盖 '+f(R.covHeat*100,0)+'%，'+
+    (R.heatGap>0 ? ('不足 '+f(R.heatGap,0)+' kWh 由燃气热水器补充。') : '已全部覆盖。') +
+    '<br>供电：家庭年用电 '+f(R.Edmd,0)+' kWh，装置自用 '+f(R.Eself,0)+' kWh' + (R.Esur>0? '，余 '+f(R.Esur,0)+' kWh 上网' : '，仍需购电 '+f(R.Ebuy,0)+' kWh') + '。';
+
+  /* 对比表 */
+  var c = '<thead><tr><th>项目</th><th>燃气热水器方案</th><th>重整制氢热电联供</th></tr></thead><tbody>';
+  function crow(k, a1, a2, cls1, cls2){ return '<tr><td>'+k+'</td><td class="mono '+(cls1||'')+'">'+a1+'</td><td class="mono '+(cls2||'')+'">'+a2+'</td></tr>'; }
+  c += crow('供暖热源', '燃气壁挂炉 / 热水器（η '+f(i.etaWH*100,0)+'%）', '装置余热（覆盖 '+f(R.covHeat*100,0)+'%）' + (R.heatGap>0?' + 热水器补':''));
+  c += crow('生活热水', '燃气热水器', '装置余热');
+  c += crow('用电来源', '电网购电', '装置自发电' + (R.Esur>0?' + 余电上网':''));
+  c += crow('年燃气用量', f(R.FbaseHeatQty,1)+' '+R.gasUnit, f(R.FgasTotal,1)+' '+R.gasUnit);
+  c += crow('年燃气费', money(R.costGasBase)+' 万元', money(R.costGasDev)+' 万元');
+  c += crow('年电费', money(R.costElecBase)+' 万元', money(R.costElecBuy)+' 万元');
+  c += crow('年水费', money(R.costWaterBase)+' 万元', money(R.costWater)+' 万元');
+  c += crow('年运维费', money(0.8*10000*i.opexRate)+' 万元', money(R.opex)+' 万元');
+  c += crow('余电上网收入', '—', R.GridOut>0 ? ('−'+money(R.costGridOutRev)+' 万元') : '—');
+  c += '<tr style="border-top:2px solid #e2e9f0"><td><b>年总支出</b></td><td class="mono"><b>'+money(R.costBaseTotal)+' 万元</b></td><td class="mono"><b>'+money(R.costDevTotal)+' 万元</b></td></tr>';
+  c += crow('<b>年节省</b>', '—', (R.saveAnnual>=0?'+':'')+money(R.saveAnnual)+' 万元', '', R.saveAnnual>0?'':'neg');
+  c += crow('初投资', '≈ 0.5~1 万元（热水器）', money(R.invTotal)+' 万元（设备+光伏）');
+  c += crow('静态回收期', '—', isFinite(R.payback)? f(R.payback,1)+' 年' : '∞');
+  c += '</tbody>';
+  $('tblCmp').innerHTML = c;
+
+  /* 经济效益 */
+  $('gridEcon').innerHTML =
+    kpi('设备投资', f(R.invDev,1), '万元', f(R.Pinst,1)+' kW × '+f(i.unitCost,1)+' 万元/kW', 'hi') +
+    (i.pvOn ? kpi('光伏投资', money(R.PpvCost), '万元', f(R.Ppv,1)+' kW × '+f(i.pvCost,2)+' 元/W') : '') +
+    kpi('总投资', money(R.invTotal), '万元', '设备 + 光伏') +
+    kpi('年节省', money(R.saveAnnual), '万元/年', '基准支出 − 装置支出', R.saveAnnual>0?'hi':'warn') +
+    kpi('静态回收期', isFinite(R.payback)? f(R.payback,1) : '∞', '年', '总投资 ÷ 年节省', (isFinite(R.payback)&&R.payback<=i.life)?'hi':'warn') +
+    kpi('动态回收期', R.discPayback!==null? f(R.discPayback,1) : '&gt;'+f(i.life,0), '年', '折现率 '+f(i.disc*100,1)+'%', R.discPayback!==null?'hi':'warn') +
+    kpi('投资收益率 ROI', f(R.roi*100,2), '%/年', '年节省 ÷ 总投资') +
+    kpi('NPV（'+f(i.life,0)+'年）', money(R.npv), '万元', '折现率 '+f(i.disc*100,1)+'%', R.npv>0?'hi':'warn') +
+    kpi('IRR', R.irr!==null? f(R.irr*100,1) : '—', '%', '内部收益率') +
+    kpi('寿命期累计净收益', money(R.cumProfit), '万元', f(i.life,0)+' 年累计', R.cumProfit>0?'hi':'warn');
+
+  var t2 = '<thead><tr><th>经济效益 · 明细</th><th>数值</th></tr></thead><tbody>';
+  function tr(k,v,note,cls){ return '<tr><td>'+k+'</td><td class="mono '+(cls||'')+'">'+v+(note?' <span style="color:#93a3b4">'+note+'</span>':'')+'</td></tr>'; }
+  t2 += tr('设备投资', f(R.invDev,2)+' 万元', f(R.Pinst,1)+' kW × '+f(i.unitCost,1)+' 万元/kW');
+  t2 += tr('光伏投资', money(R.PpvCost)+' 万元', i.pvOn ? f(R.Ppv,1)+' kW' : '未加装');
+  t2 += tr('<b>总投资</b>', '<b>'+money(R.invTotal)+' 万元</b>');
+  t2 += tr('装置方案 · 年燃气费', '−'+money(R.costGasDev)+' 万元', f(R.FgasTotal,1)+' '+R.gasUnit);
+  t2 += tr('装置方案 · 年购电费', '−'+money(R.costElecBuy)+' 万元', f(R.Ebuy,0)+' kWh');
+  t2 += tr('装置方案 · 年水费', '−'+money(R.costWater)+' 万元', f(R.makeHeatYear+R.dhwVolYear,0)+' m³');
+  t2 += tr('装置方案 · 年运维费', '−'+money(R.opex)+' 万元', '@ 设备投资 × '+f(i.opexRate*100,1)+'%/年');
+  t2 += tr('装置方案 · 余电上网收入', '+'+money(R.costGridOutRev)+' 万元', f(R.GridOut,0)+' kWh');
+  t2 += tr('<b>装置方案年支出</b>', '<b>'+money(R.costDevTotal)+' 万元</b>');
+  t2 += tr('基准方案年支出（热水器+电网）', f(R.costBaseTotal/10000,2)+' 万元', '电 '+money(R.costElecBase)+' + 气 '+money(R.costGasBase)+' + 水 '+money(R.costWaterBase));
+  t2 += '<tr style="border-top:2px solid #e2e9f0"><td><b>年节省</b></td><td class="mono"><b>'+ (R.saveAnnual>=0?'+':'') + money(R.saveAnnual)+' 万元/年</b></td></tr>';
+  t2 += tr('静态回收期', isFinite(R.payback)? f(R.payback,2)+' 年' : '∞（年节省 ≤ 0）');
+  t2 += tr('动态回收期（折现）', R.discPayback!==null? f(R.discPayback,2)+' 年' : '>'+f(i.life,0)+' 年');
+  t2 += tr('NPV（'+f(i.life,0)+'年 @ '+f(i.disc*100,1)+'%）', money(R.npv)+' 万元');
+  t2 += tr('IRR', R.irr!==null? f(R.irr*100,2)+' %' : '无解');
+  t2 += tr('寿命期累计净收益', money(R.cumProfit)+' 万元');
+  t2 += tr('燃气热水器单位热水成本', f(R.whPerM3Yuan,2)+' 元/m³', '（50℃ 热水，ΔT '+f(R.dTdhw,0)+'K，η '+f(i.etaWH*100,0)+'%）');
+  t2 += tr('装置发电边际气耗成本', f(R.gasCostPerKwhElec,3)+' 元/kWh', '按第一档气价，η_e '+f(i.etaE*100,0)+'%');
+  t2 += '</tbody>';
+  $('tblEconInv').innerHTML = t2;
+
+  /* 敏感性：气价 × 电价 → 静态回收期 */
+  var basePrice = i.gasTiers[0].price;
+  var gasList = [0, basePrice*0.6, basePrice*0.8, basePrice, basePrice*1.2];
+  // 电价按比例缩放三档
+  var elecScaleList = [0.9, 1.0, 1.1];
+  var sens = '<thead><tr><th>气价(一档) ↓ / 电价 →</th>' + elecScaleList.map(function(s){
+    return '<th>×'+f(s,2)+'</th>'; }).join('') + '</tr></thead><tbody>';
+  gasList.forEach(function(g){
+    sens += '<tr><td>'+f(g,2)+' '+R.gasUnit+'档价'+(Math.abs(g-basePrice)<1e-9?' <b>（当前）</b>':'')+'</td>';
+    elecScaleList.forEach(function(sc){
+      var gasT = i.gasTiers.map(function(t){ return {upTo:t.upTo, price:t.price*(g/basePrice || 0)}; });
+      var elecT = i.elecTiers.map(function(t){ return {upTo:t.upTo, price:t.price*sc}; });
+      var j = Object.assign({}, i, {gasTiers:gasT, elecTiers:elecT});
+      var R2 = calcRes(j);
+      var pb = R2.saveAnnual > 0 ? R2.invTotal/R2.saveAnnual : Infinity;
+      var cur = Math.abs(g-basePrice)<1e-9 && Math.abs(sc-1)<1e-9;
+      sens += '<td class="mono">'+(isFinite(pb)? f(pb,1) : '∞')+(cur?' <b>←</b>':'')+'</td>';
+    });
+    sens += '</tr>';
+  });
+  sens += '</tbody>';
+  $('tblSens').innerHTML = sens;
+  $('econNote').innerHTML = '<b>经济性口径：</b>设备按 <b>'+f(i.unitCost,1)+' 万元/kW</b>（民用默认 1 万元/kW）× 装机 '+f(R.Pinst,1)+' kW；'+
+    '燃气按<b>阶梯气价</b>（'+f(i.gasTiers[0].price,2)+'/'+f(i.gasTiers[1].price,2)+'/'+f(i.gasTiers[2].price,2)+' 元/单位），电力按<b>阶梯电价</b>'+
+    '（'+f(i.elecTiers[0].price,4)+'/'+f(i.elecTiers[1].price,4)+'/'+f(i.elecTiers[2].price,4)+' 元/kWh，充电桩另计 '+f(i.evPrice,2)+' 元/kWh）；'+
+    '对比基准 = 燃气热水器/壁挂炉供热 + 电网购电。'+
+    '<br><b>关键敏感点：</b>① <b>气价</b>——气价越低越划算（自产/工业直供气优于居民阶梯气价）；② <b>电价</b>——自用替代电价越高越划算；'+
+    '③ <b>设备造价</b>（默认 1 万元/kW）；④ <b>光伏</b>可显著改善（光伏边际成本低于燃气发电）。'+
+    '<br>本工具不含增值税、通胀与设备衰减；余电上网按 '+f(i.pGrid,2)+' 元/kWh 计。';
+
+  /* 校验行 */
+  var chk = '<thead><tr><th>校验项</th><th>数值</th></tr></thead><tbody>';
+  chk += tr('模块容量校核', f(R.Pinst,1)+' kW ≥ '+f(R.Pload,2)+' kW', R.capOk ? '✓ 满足' : '✗ 不足');
+  chk += tr('供暖循环流量校核', f(R.Vloop,3)+' m³/h', 'Q×3.6 ÷ (4.18×ΔT_loop)');
+  chk += tr('补水倍数（洗浴 ÷ 供暖）', f(R.dhwVolYear / (R.makeHeatYear||1e-9),0)+' 倍', '供暖闭式 ~0，洗浴直排 1:1');
+  chk += tr('热平衡：装置供热 + 缺口', f(R.heatSup,0)+' + '+f(R.heatGap,0)+' = '+f(R.heatSup+R.heatGap,0)+' kWh', '≈ 总热需求 '+f(R.heatNeed,0)+' kWh');
+  chk += tr('电平衡：自用 + 上网 + 购电', f(R.Eself,0)+' + '+f(R.Esur,0)+' + '+f(R.Ebuy,0)+' = '+f(R.Eself+R.Esur+R.Ebuy,0)+' kWh', '≈ 总电需求（装置）+光伏');
+  chk += tr('综合效率', f(R.etaAll*100,0)+'%', 'η_e + η_h = '+f(i.etaE*100,0)+'% + '+f(i.etaH*100,0)+'%');
+  chk += tr('装置气电比', f(R.LHV*i.etaE,2)+' kWh电 / '+R.gasUnit, 'LHV '+f(R.LHV,3)+' × η_e '+f(i.etaE,2));
+  chk += '</tbody>';
+  $('tblCheck').innerHTML = chk;
+
+  /* 脚注 */
+  $('foot').innerHTML =
+    '民用模块：天然气（或液化石油气）重整制氢 + 燃料电池热电联供 · 供暖 + 洗浴 + 家用电器 · 可选屋顶光伏。<br>'+
+    '常数：水比热 4.18 kJ/(kg·K)｜天然气 LHV 9.972 kWh/Nm³（35.9 MJ/Nm³，12T）｜液化气 LHV 12.56 kWh/kg（45.2 MJ/kg）。<br>'+
+    '<b>免责说明：</b>本工具为工程估算参考。建筑热指标 K、日用热水定额、同时系数、燃气/电阶梯价、设备造价等均为可调假设值，'+
+    '请按当地实际与厂家样本校核；正式报价/合同以实测与厂家样本为准。纯静态页面，离线可用，不采集任何数据。';
+  window.__LAST = { i:i, R:R };
+}
+
+/* 复制文本 */
+function buildText(){
+  var L = window.__LAST; if(!L) return '';
+  var i = L.i, R = L.R, o = [];
+  o.push('【民用 · 天然气重整制氢热电联供 测算结果】');
+  o.push('建筑：'+f(i.Area,0)+' m²，目标室温 '+f(i.Tib,0)+'℃，室外 '+f(i.Tob,0)+'℃，K='+f(i.K,2)+' W/(m²·K)');
+  o.push('— 供暖 —');
+  o.push('设计热负荷 '+f(R.Qheat,2)+' kW（等效热指标 '+f(R.qIndex,1)+' W/m²）；供暖季耗热 '+f(R.heatYear,0)+' kWh/年');
+  o.push('循环流量 '+f(R.Vloop,2)+' m³/h；供暖补水 '+f(R.makeHeatYear,2)+' m³/年（闭式循环，极少）');
+  o.push('— 生活热水 —');
+  o.push(f(i.nPeople,0)+' 人 × '+f(i.Vper,0)+' L/人次 → 年耗热 '+f(R.dhwYear,0)+' kWh，年用水 '+f(R.dhwVolYear,0)+' m³（直排=补水）');
+  o.push('峰值热水负荷 '+f(R.QdhwPeak,2)+' kW');
+  o.push('— 用电与模块 —');
+  o.push('电器装机 '+f(R.Papp,2)+' kW × 同时系数 '+f(i.demandF,2)+' = '+f(R.Pload,2)+' kW → '+f(R.Nmod,0)+' 台 × '+f(i.modP,1)+' kW = '+f(R.Pinst,1)+' kW');
+  o.push('— 装置 —');
+  o.push('运行 '+f(R.hRun,0)+' h/年；发电 '+f(R.Egen,0)+' kWh；耗气 '+f(R.FgasQty,1)+' '+R.gasUnit+'/年');
+  o.push('供热 '+f(R.heatSup,0)+' kWh（覆盖 '+f(R.covHeat*100,0)+'%）；余电上网 '+f(R.GridOut,0)+' kWh');
+  o.push('— 经济性 —');
+  o.push('总投资 '+money(R.invTotal)+' 万元（设备 '+f(R.invDev,2)+' 万 + 光伏 '+money(R.PpvCost)+' 万）');
+  o.push('基准年支出 '+money(R.costBaseTotal)+' 万元 vs 装置年支出 '+money(R.costDevTotal)+' 万元');
+  o.push('年节省 '+money(R.saveAnnual)+' 万元；静态回收期 '+(isFinite(R.payback)? f(R.payback,1)+' 年':'∞')+
+         '；NPV '+money(R.npv)+' 万元；IRR '+(R.irr!==null? f(R.irr*100,1)+'%':'无解'));
+  o.push('（工具：DESS-Calc 民用版 · 估算参考，非报价依据）');
+  return o.join('\n');
+}
+$('btnCopy').onclick = function(){
+  var t = buildText();
+  var done = function(){ var el=$('copied'); el.style.display='inline'; setTimeout(function(){ el.style.display='none'; },1800); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, function(){ fallback(t,done); });
+  else fallback(t,done);
+};
+function fallback(t, done){
+  var ta = document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e){ alert('复制失败，请手动选中：\n\n'+t); }
+  document.body.removeChild(ta);
+}
+$('btnPrint').onclick = function(){ window.print(); };
+$('btnCalc').onclick = render;
+$('btnReset').onclick = function(){
+  Object.keys(DEFAULTS).forEach(function(k){ if($(k)) $(k).value = DEFAULTS[k]; });
+  $('hasEV').checked = false; $('pvOn').checked = false;
+  document.getElementById('Ks').value = '1.2';
+  document.getElementById('gasType').value = 'ng';
+  document.querySelector('input[name=strategy][value=heat]').checked = true;
+  renderAppliances(); toggleRows(); render();
+};
+
+function toggleRows(){
+  $('rowEV').style.display = $('hasEV').checked ? '' : 'none';
+  $('rowEVP').style.display = $('hasEV').checked ? '' : 'none';
+  ['rowPV','rowPV2','rowPV3','rowPV4','rowPV5'].forEach(function(id){
+    $(id).style.display = $('pvOn').checked ? '' : 'none';
+  });
+  var st = (document.querySelector('input[name=strategy]:checked')||{}).value || 'heat';
+  $('rowHRun').style.display = st==='manual' ? '' : 'none';
+  var gt = document.getElementById('gasType').value;
+  $('gasUnitTxt').textContent = gt==='lpg' ? '月·kg' : '月·Nm³';
+}
+
+document.addEventListener('input', function(ev){
+  if (ev.target.closest && (ev.target.closest('.col-in'))) render();
+});
+document.addEventListener('change', function(ev){
+  if (ev.target.name === 'strategy' || ev.target.id === 'gasType' || ev.target.id === 'hasEV' || ev.target.id === 'pvOn' || ev.target.id === 'Ks'){
+    if (ev.target.id === 'gasType'){
+      // 切换燃气类型时，自动填充该类型默认阶梯气价
+      if (ev.target.value === 'lpg'){ $('gT1u').value=30; $('gT1u').value=30; $('gT1p').value=8.00; $('gT2u').value=60; $('gT2p').value=8.00; $('gT3p').value=8.00; }
+      else { $('gT1u').value=30; $('gT1p').value=2.80; $('gT2u').value=50; $('gT2p').value=3.10; $('gT3p').value=3.90; }
+    }
+    toggleRows(); render();
+  }
+});
+
+renderAppliances();
+toggleRows();
+render();
+</script>
+</body>
+</html>
