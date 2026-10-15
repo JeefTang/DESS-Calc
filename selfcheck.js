@@ -15,7 +15,7 @@ const { calcCore } = core;
 const i = {
   P: 100, eta: 0.50, h: 8000, r: 5,
   psa: 0.80, refconv: 0.90,
-  recov: 0.80, sc: 5, heatMode: 'auto', steamSelf: 1,
+  recov: 0.80, sc: 5, heatMode: 'auto', steamSelf: 1, oxid: 'air', oc: 0.40,
   qmode: 'Q', Q: 100, steamT: 1, steamTemp: 600,
   Tin: 15, Tout: 50, etaHex: 0.75,
   pCH4: 3.20, pElec: 0.70, pWater: 4.00, pHeat: 60,
@@ -92,6 +92,23 @@ const Rext = calcCore(Object.assign({}, i, { heatMode: 'ext' }));
 const okExt = Math.abs(Rext.netMakeup - 37.07) <= 0.05 && Math.abs(Rext.steamExt - Rext.steamNeed) < 1e-9;
 if (!okExt) fail++;
 console.log(`${okExt ? '✓' : '✗'} 外供蒸汽模式：外供 ${Rext.steamExt.toFixed(2)} kg/h，净补水 ${Rext.netMakeup.toFixed(2)} kg/h（期望≈ 37.07）`);
+
+// 重整配气·氧化剂（配空气，O₂/C=0.40）
+const ox = [
+  ['O₂ 配入 Nm³/h',   R.vO2,  8.00,  0.01],
+  ['空气配入 Nm³/h',   R.vAir, 38.10, 0.05],
+  ['空气带入 N₂ Nm³/h', R.vN2, 30.10, 0.05],
+];
+console.log('\n=== 重整配气·氧化剂（空气 · O₂/C=0.40）===');
+for (const [name, got, want, tol] of ox) {
+  const ok = Math.abs(got - want) <= tol;
+  if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(20)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
+}
+const Rno = calcCore(Object.assign({}, i, { oxid: 'none' }));
+const okNone = Rno.vO2 === 0 && Rno.vAir === 0 && Rno.vN2 === 0;
+if (!okNone) fail++;
+console.log(`${okNone ? '✓' : '✗'} 不配氧化剂 → O₂/空气/N₂ 均为 0`);
 const okUnit = Math.abs(R.unitCost - 0.64) <= 0.02; if (!okUnit) fail++;
 console.log(`${okUnit ? '✓' : '✗'} 单位电成本 = ${R.unitCost.toFixed(4)} 元/kWh (期望≈0.64 = 气价3.2÷气电比5；气 ${(R.costCH4/10000).toFixed(2)}万 + 水 ${(R.costWater/10000).toFixed(4)}万 / ${(R.yMWh*1000).toFixed(0)} kWh)`);
 console.log(`  理论反推甲烷 = ${R.VCH4Theory.toFixed(2)} Nm³/h`);
