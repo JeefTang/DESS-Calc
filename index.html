@@ -164,8 +164,19 @@
       </div>
     </details>
 
+    <details class="grp" open>
+      <summary>F 投资与效益（经济评价）<span class="badge">新增</span></summary>
+      <div class="fields">
+        <div class="row"><label>设备投资（含税·含前处理）<small>整套装置总投入，万元</small></label><div><input id="inv" type="number" value="195" step="1" min="0"></div></div>
+        <div class="row"><label>年运维费率<small>% / 年（按投资额计：人工·耗材·大修）⚠️ 假设值</small></label><div><input id="opexRate" type="number" value="2" step="0.1" min="0"></div></div>
+        <div class="row"><label>项目寿命期<small>年</small></label><div><input id="life" type="number" value="10" step="1" min="1"></div></div>
+        <div class="row"><label>折现率<small>% / 年（算 NPV / IRR 用）</small></label><div><input id="disc" type="number" value="6" step="0.5"></div></div>
+        <div class="row"><label>年补贴 / 其他收益<small>万元 / 年（无则填 0）</small></label><div><input id="subsidy" type="number" value="0" step="0.5" min="0"></div></div>
+      </div>
+    </details>
+
     <details class="grp">
-      <summary>F 反算模式<span class="badge">可选</span></summary>
+      <summary>G 反算模式<span class="badge">可选</span></summary>
       <div class="fields">
         <div class="radio-line">
           <label><input type="radio" name="rmode" value="off" checked> 关闭（正算）</label>
@@ -205,6 +216,14 @@
 
     <h2 class="sec">经济性（按年运行小时）</h2>
     <table class="mini" id="tblEcon"></table>
+
+    <h2 class="sec">经济效益（投资与回报）</h2>
+    <div class="grid" id="gridEcon"></div>
+    <table class="mini" id="tblEconInv"></table>
+
+    <h2 class="sec">敏感性 · 静态回收期（年）</h2>
+    <table class="mini" id="tblSens"></table>
+    <div class="note" id="econNote"></div>
 
     <h2 class="sec">校验行（与输入口径对照）</h2>
     <table class="mini" id="tblCheck"></table>
@@ -291,6 +310,44 @@ function calcCore(i){
   var unitCost = yMWh > 0 ? (costCH4 + costWater) / (yMWh * 1000) : 0;
   var unitCostNetHeat = yMWh > 0 ? (costCH4 + costWater - revHeat) / (yMWh * 1000) : 0;
 
+  // ⑧ 经济效益（投资与回报）—— 投资口径：整套装置含税・含前处理
+  var inv       = (i.inv || 0) * 10000;              // 元（输入单位：万元）
+  var opexRate  = i.opexRate || 0;                   // 年运维费率（占投资额）
+  var disc      = i.disc || 0;                       // 折现率
+  var life      = i.life || 1;                       // 项目寿命期（年）
+  var revElec   = yMWh * 1000 * i.pElec;             // 年发电收益 = 年发电量 × 电价
+  var opex      = inv * opexRate;                    // 年运维费
+  var subsidy   = (i.subsidy || 0) * 10000;          // 年补贴/其他收益（元）
+  var revTotal  = revElec + revHeat + subsidy;        // 年收益合计
+  var costTotal = costCH4 + costWater + opex;         // 年成本合计
+  var netAnnual = revTotal - costTotal;               // 年净收益
+  var payback   = netAnnual > 0 ? inv / netAnnual : Infinity;   // 静态回收期
+  var roi       = inv > 0 ? netAnnual / inv : 0;                // 投资收益率
+  // 现金流 / NPV / 动态回收期
+  var cum = 0, npv = -inv, prevDisc = -inv, discPayback = null;
+  var flows = [];
+  for (var y = 1; y <= life; y++) {
+    var df  = Math.pow(1 + disc, y);
+    var dcf = netAnnual / df;
+    cum += netAnnual;
+    npv += dcf;
+    var curDisc = prevDisc + dcf;
+    if (discPayback === null && dcf > 0 && curDisc >= 0) discPayback = (y - 1) + (-prevDisc) / dcf;
+    prevDisc = curDisc;
+    flows.push({ y: y, cf: netAnnual, cum: cum, cumDisc: curDisc });
+  }
+  var cumProfit = cum;                                // 寿命期累计净收益
+  // IRR：净现值对折现率单调递减，二分法
+  function npvAt(rate){ var v = -inv; for (var k = 1; k <= life; k++) v += netAnnual / Math.pow(1 + rate, k); return v; }
+  var irr = null;
+  if (netAnnual > 0 && inv > 0) {
+    var lo = -0.9, hi = 10;
+    if (npvAt(lo) > 0 && npvAt(hi) < 0) {
+      for (var s = 0; s < 120; s++) { var mid = (lo + hi) / 2; if (npvAt(mid) > 0) lo = mid; else hi = mid; }
+      irr = (lo + hi) / 2;
+    }
+  }
+
   return {
     mH2:mH2, VH2:VH2, VCH4:VCH4, mCH4:mCH4, etaAll:etaAll, VCH4Theory:VCH4Theory,
     mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
@@ -298,7 +355,11 @@ function calcCore(i){
     mCO2:mCO2, yCO2:yCO2,
     yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
     costWater:costWater, yHot:yHot, heatGJ:heatGJ, yHeatGJ:yHeatGJ, revHeat:revHeat,
-    unitCost:unitCost, unitCostNetHeat:unitCostNetHeat
+    unitCost:unitCost, unitCostNetHeat:unitCostNetHeat,
+    inv:inv, opexRate:opexRate, life:life, disc:disc, subsidy:subsidy,
+    revElec:revElec, opex:opex, revTotal:revTotal, costTotal:costTotal,
+    netAnnual:netAnnual, payback:payback, roi:roi, npv:npv, irr:irr,
+    discPayback:discPayback, cumProfit:cumProfit, flows:flows
   };
 }
 
@@ -328,7 +389,8 @@ var f = function(v, n){ if(!isFinite(v)) return '—';
 var DEFAULTS = {
   P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
   Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
-  pCH4:3.20, pElec:0.64, pWater:4.00, pHeat:60
+  pCH4:3.20, pElec:0.64, pWater:4.00, pHeat:60,
+  inv:195, opexRate:2, life:10, disc:6, subsidy:0
 };
 
 function readInputs(){
@@ -341,6 +403,8 @@ function readInputs(){
     Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
     pCH4:num('pCH4',3.2), pElec:num('pElec',0.64), pWater:num('pWater',4),
     pHeat:num('pHeat',60),
+    inv:num('inv',195), opexRate:pct('opexRate',0.02), life:num('life',10),
+    disc:pct('disc',0.06), subsidy:num('subsidy',0),
     rmode:document.querySelector('input[name=rmode]:checked').value,
     tgtP:num('tgtP',200), tgtV:num('tgtV',5)
   };
@@ -420,6 +484,68 @@ function render(){
   e += '</tbody>';
   $('tblEcon').innerHTML = e;
 
+  /* --- 经济效益（投资与回报） --- */
+  var costAll = R.costCH4 + R.costWater + R.opex;
+  $('gridEcon').innerHTML =
+    kpi('设备投资', f(i.inv,1), '万元', '含税 · 含前处理', 'hi') +
+    kpi('年发电收益', f(R.revElec/10000,2), '万元', f(R.yMWh,0)+' MWh × '+f(i.pElec,2)+' 元/kWh') +
+    kpi('年供热收益', f(R.revHeat/10000,2), '万元', f(R.yHeatGJ,0)+' GJ × '+f(i.pHeat,0)+' 元/GJ', 'hi') +
+    kpi('年运行成本', f(costAll/10000,2), '万元', '气 + 水 + 运维') +
+    kpi('年净收益', f(R.netAnnual/10000,2), '万元', '收益 − 成本', R.netAnnual>0?'hi':'warn') +
+    kpi('静态回收期', isFinite(R.payback)? f(R.payback,1) : '∞', '年', '投资 ÷ 年净收益', (isFinite(R.payback)&&R.payback<=i.life)?'hi':'warn') +
+    kpi('动态回收期', (R.discPayback!==null? f(R.discPayback,1) : '&gt;'+f(i.life,0)), '年', '折现率 '+f(i.disc*100,1)+'%', (R.discPayback!==null)?'hi':'warn') +
+    kpi('投资收益率 ROI', f(R.roi*100,2), '%/年', '年净收益 ÷ 投资') +
+    kpi('NPV（'+f(i.life,0)+'年）', f(R.npv/10000,1), '万元', '折现率 '+f(i.disc*100,1)+'%', R.npv>0?'hi':'warn') +
+    kpi('IRR', R.irr!==null? f(R.irr*100,1) : '—', '%', '内部收益率') +
+    kpi('寿命期累计净收益', f(R.cumProfit/10000,1), '万元', f(i.life,0)+' 年累计', R.cumProfit>0?'hi':'warn');
+
+  var t2 = '<thead><tr><th>经济效益 · 明细</th><th>数值</th></tr></thead><tbody>';
+  t2 += trow('设备投资（含税、含前处理）', f(i.inv,2)+' 万元');
+  t2 += trow('① 年发电收益', f(R.revElec/10000,2)+' 万元', '@ '+f(i.pElec,2)+' 元/kWh（自用替代外购/上网）');
+  t2 += trow('② 年供热收益', f(R.revHeat/10000,2)+' 万元', '@ '+f(i.pHeat,1)+' 元/GJ');
+  t2 += trow('③ 年补贴/其他收益', f(i.subsidy,2)+' 万元');
+  t2 += trow('年收益合计 ①+②+③', f(R.revTotal/10000,2)+' 万元');
+  t2 += trow('④ 年气费', '−'+f(R.costCH4/10000,2)+' 万元', f(R.yCH4,0)+' Nm³ × '+f(i.pCH4,2)+' 元/Nm³');
+  t2 += trow('⑤ 年水费', '−'+f(R.costWater/10000,3)+' 万元');
+  t2 += trow('⑥ 年运维费', '−'+f(R.opex/10000,2)+' 万元', '@ 投资 × '+f(i.opexRate*100,1)+'%/年');
+  t2 += trow('年成本合计 ④+⑤+⑥', '−'+f(R.costTotal/10000,2)+' 万元');
+  t2 += '<tr style="border-top:2px solid #e2e9f0"><td><b>年净收益</b></td><td class="mono"><b>'+f(R.netAnnual/10000,2)+' 万元</b></td></tr>';
+  t2 += trow('静态回收期', isFinite(R.payback)? f(R.payback,2)+' 年' : '∞（年净收益≤ 0）', '投资 ÷ 年净收益');
+  t2 += trow('动态回收期（折现）', (R.discPayback!==null? f(R.discPayback,2)+' 年' : '>'+f(i.life,0)+' 年'));
+  t2 += trow('NPV（'+f(i.life,0)+'年 @ '+f(i.disc*100,1)+'%）', f(R.npv/10000,2)+' 万元');
+  t2 += trow('IRR', (R.irr!==null? f(R.irr*100,2)+' %' : '无解'));
+  t2 += trow('寿命期累计净收益', f(R.cumProfit/10000,2)+' 万元');
+  t2 += '</tbody>';
+  $('tblEconInv').innerHTML = t2;
+
+  /* 敏感性：气价（行）× 电价（列）→ 静态回收期 */
+  var gasList = [0, 1.0, 2.0, 3.2, 4.0];
+  var elecList = [0.50, 0.64, 0.80];
+  var sens = '<thead><tr><th>气价 ↓ / 电价 →</th>' +
+    elecList.map(function(e){ return '<th>'+f(e,2)+' 元/kWh</th>'; }).join('') + '</tr></thead><tbody>';
+  gasList.forEach(function(g){
+    var isCur = Math.abs(g - i.pCH4) < 1e-9;
+    sens += '<tr><td>'+f(g,2)+' 元/Nm³'+(isCur?' <b>（当前）</b>':'')+'</td>';
+    elecList.forEach(function(e){
+      var net = R.revHeat + R.subsidy + R.yMWh*1000*e - R.yCH4*g - R.costWater - R.opex;
+      var pb = net > 0 ? R.inv/net : Infinity;
+      var cur = isCur && Math.abs(e - i.pElec) < 1e-9;
+      sens += '<td class="mono">'+(isFinite(pb)? f(pb,1) : '∞')+(cur?' <b>←</b>':'')+'</td>';
+    });
+    sens += '</tr>';
+  });
+  sens += '</tbody>';
+  $('tblSens').innerHTML = sens;
+  $('econNote').innerHTML =
+    '<b>经济效益口径说明（含假设，待确认）：</b>投资按「整套装置含税 195 万元（含前处理）」计入；'+
+    '收益 = 年发电量×电价（自用替代外购电，或上网电价）+ 年可供热量×热价 + 补贴；'+
+    '成本 = 年气费 + 年水费 + 年运维费（按投资额 '+f(i.opexRate*100,1)+'%/年 估算，含人工/耗材/大修，'+
+    '<b>⚠️ 任务书未给，为假设值，请确认</b>）；寿命期 '+f(i.life,0)+' 年、折现率 '+f(i.disc*100,1)+'%（假设）。'+
+    '全局不加年衰减、不考虑通胀与税。'+
+    '<br><b>关键敏感点：</b>回收期几乎由「气价」决定——'+
+    '若原料为<b>自产沼气（近零成本，气价填 0）</b>，回收期可降至 3~4 年；'+
+    '若按外购天然气 3.20 元/Nm³ 计，则需 20 年以上。请按真实原料成本填写气价。';
+
   /* --- 校验行 --- */
   var c = '<thead><tr><th>校验项</th><th>数值</th></tr></thead><tbody>';
   c += trow('甲烷理论反推 vs 实际取值', f(R.VCH4Theory,2)+' / '+f(R.VCH4,2)+' Nm³/h',
@@ -483,6 +609,11 @@ function buildText(){
   o.push('— 经济性 —');
   o.push('年发电 '+f(R.yMWh,1)+' MWh；年气费 '+f(R.costCH4/10000,2)+' 万元；年水费 '+f(R.costWater/10000,3)+' 万元');
   o.push('单位电成本 '+f(R.unitCost,3)+' 元/kWh（未抵扣热收益）｜抵扣后 '+f(R.unitCostNetHeat,3)+' 元/kWh');
+  o.push('— 经济效益（投资 '+f(i.inv,1)+' 万元含税·含前处理）—');
+  o.push('年收益：发电 '+f(R.revElec/10000,2)+' 万 + 供热 '+f(R.revHeat/10000,2)+' 万 + 补贴 '+f(i.subsidy,2)+' 万 = '+f(R.revTotal/10000,2)+' 万元');
+  o.push('年成本：气 '+f(R.costCH4/10000,2)+' 万 + 水 '+f(R.costWater/10000,3)+' 万 + 运维 '+f(R.opex/10000,2)+' 万 = '+f(R.costTotal/10000,2)+' 万元');
+  o.push('年净收益 '+f(R.netAnnual/10000,2)+' 万元；静态回收期 '+ (isFinite(R.payback)? f(R.payback,1)+' 年' : '∞') +
+         '；ROI '+f(R.roi*100,2)+'%/年；NPV '+f(R.npv/10000,1)+' 万元；IRR '+ (R.irr!==null? f(R.irr*100,1)+'%' : '无解'));
   o.push('（工具：DESS-Calc · 估算参考，非报价依据）');
   return o.join('\n');
 }
