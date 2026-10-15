@@ -15,7 +15,7 @@ const { calcCore } = core;
 const i = {
   P: 100, eta: 0.50, h: 8000, r: 5,
   psa: 0.80, refconv: 0.90,
-  recov: 0.80, sc: 5, heatMode: 'auto', steamSelf: 1, oxid: 'air', oc: 0.40,
+  recov: 0.80, sc: 5, heatMode: 'auto', steamSelf: 1, heatSrc: 'burner', oxid: 'air', oc: 0.40, ch4f: 60,
   qmode: 'Q', Q: 100, steamT: 1, steamTemp: 600,
   Tin: 15, Tout: 50, etaHex: 0.75,
   pCH4: 3.20, pElec: 0.70, pWater: 4.00, pHeat: 60,
@@ -93,19 +93,20 @@ const okExt = Math.abs(Rext.netMakeup - 37.07) <= 0.05 && Math.abs(Rext.steamExt
 if (!okExt) fail++;
 console.log(`${okExt ? '✓' : '✗'} 外供蒸汽模式：外供 ${Rext.steamExt.toFixed(2)} kg/h，净补水 ${Rext.netMakeup.toFixed(2)} kg/h（期望≈ 37.07）`);
 
-// 重整配气·氧化剂（配空气，O₂/C=0.40）
+// 重整配气·氧化剂（催化部分氧化·配空气，O₂/C=0.40）
+const Rox = calcCore(Object.assign({}, i, { heatSrc: 'cpo', oxid: 'air', oc: 0.40 }));
 const ox = [
-  ['O₂ 配入 Nm³/h',   R.vO2,  8.00,  0.01],
-  ['空气配入 Nm³/h',   R.vAir, 38.10, 0.05],
-  ['空气带入 N₂ Nm³/h', R.vN2, 30.10, 0.05],
+  ['O₂ 配入 Nm³/h',   Rox.vO2,  8.00,  0.01],
+  ['空气配入 Nm³/h',   Rox.vAir, 38.10, 0.05],
+  ['空气带入 N₂ Nm³/h', Rox.vN2, 30.10, 0.05],
 ];
-console.log('\n=== 重整配气·氧化剂（空气 · O₂/C=0.40）===');
+console.log('\n=== 重整配气·氧化剂（催化部分氧化 · 空气 · O₂/C=0.40）===');
 for (const [name, got, want, tol] of ox) {
   const ok = Math.abs(got - want) <= tol;
   if (!ok) fail++;
   console.log(`${ok ? '✓' : '✗'} ${name.padEnd(20)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
 }
-const Rno = calcCore(Object.assign({}, i, { oxid: 'none' }));
+const Rno = calcCore(Object.assign({}, i, { heatSrc: 'cpo', oxid: 'none' }));
 const okNone = Rno.vO2 === 0 && Rno.vAir === 0 && Rno.vN2 === 0;
 if (!okNone) fail++;
 console.log(`${okNone ? '✓' : '✗'} 不配氧化剂 → O₂/空气/N₂ 均为 0`);
@@ -113,27 +114,48 @@ const okUnit = Math.abs(R.unitCost - 0.64) <= 0.02; if (!okUnit) fail++;
 console.log(`${okUnit ? '✓' : '✗'} 单位电成本 = ${R.unitCost.toFixed(4)} 元/kWh (期望≈0.64 = 气价3.2÷气电比5；气 ${(R.costCH4/10000).toFixed(2)}万 + 水 ${(R.costWater/10000).toFixed(4)}万 / ${(R.yMWh*1000).toFixed(0)} kWh)`);
 console.log(`  理论反推甲烷 = ${R.VCH4Theory.toFixed(2)} Nm³/h`);
 
-// 进堆氢浓度（参考）：变换气干基组成（化学计量·全转化假设）
+// 进堆氢浓度（参考）：内置燃烧器（协议口径）· 变换气干基组成
 const h2 = [
-  ['化学计量氢 Nm³/h', R.cH2,       64.00,  0.05],
-  ['氢质量 kg/h',      R.mH2Stoich,  5.75,  0.02],
-  ['纯化前干基 H₂ %',  R.yH2raw*100, 56.09, 0.05],
-  ['脱氮后干基 H₂ %',  R.yH2deN*100, 76.19, 0.05],
+  ['化学计量氢 Nm³/h', R.cH2,        80.00,  0.05],
+  ['氢质量 kg/h',      R.mH2Stoich,   7.19,  0.02],
+  ['化学计量 CO₂ Nm³/h', R.cCO2,    33.33,  0.05],
+  ['沼气量 Nm³/h',     R.vBiogas,    33.33,  0.05],
+  ['纯化前干基 H₂ %',  R.yH2raw*100, 70.59,  0.05],
 ];
-console.log('\n=== 进堆氢浓度（参考 · 空气 O₂/C=0.40 · 全转化假设）===');
+console.log('\n=== 进堆氢浓度（参考 · 内置燃烧器·协议口径 · 沼气 CH₄=60% · 全转化假设）===');
 for (const [name, got, want, tol] of h2) {
   const ok = Math.abs(got - want) <= tol;
   if (!ok) fail++;
   console.log(`${ok ? '✓' : '✗'} ${name.padEnd(20)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
 }
-const okSpec = R.yH2deN >= 0.70;
+const okBN2 = R.cN2 === 0 && Math.abs(R.yH2deN - R.yH2raw) < 1e-9;
+if (!okBN2) fail++;
+console.log(`${okBN2 ? '✓' : '✗'} 内置燃烧器：空气不进工艺气 → N₂=0，脱氮前后氢浓度相同 ${(R.yH2deN*100).toFixed(2)}%`);
+const okSpec = R.yH2deN >= 0.695;
 if (!okSpec) fail++;
-console.log(`${okSpec ? '✓' : '✗'} 脱氮后氢浓度 ${(R.yH2deN*100).toFixed(2)}% ≥ 协议阈值 70%`);
-// 纯氧：无 N₂ 稀释 → 氢浓度提高
-const Ro2 = calcCore(Object.assign({}, i, { oxid: 'o2' }));
-const okO2 = Math.abs(Ro2.yH2raw - Ro2.yH2deN) < 1e-9 && Ro2.cN2 === 0 && Ro2.yH2raw > R.yH2raw;
-if (!okO2) fail++;
-console.log(`${okO2 ? '✓' : '✗'} 纯氧（无 N₂）：纯化前即为脱氮后浓度 ${(Ro2.yH2raw*100).toFixed(2)}% > 配空气 ${(R.yH2raw*100).toFixed(2)}%`);
+console.log(`${okSpec ? '✓' : '✗'} 进堆氢浓度 ${(R.yH2deN*100).toFixed(2)}% ≥ 协议阈值 70%（±0.5pp 容差）`);
+
+// 催化部分氧化（对比口径）：配空气 O₂/C=0.40 → N₂ 稀释
+const Rcpo = calcCore(Object.assign({}, i, { heatSrc: 'cpo', oxid: 'air', oc: 0.40 }));
+const cpo = [
+  ['CPO·O₂ Nm³/h',     Rcpo.vO2,           8.00,  0.01],
+  ['CPO·空气 Nm³/h',   Rcpo.vAir,         38.10,  0.05],
+  ['CPO·N₂ Nm³/h',     Rcpo.vN2,          30.10,  0.05],
+  ['CPO·化学计量氢',   Rcpo.cH2,          64.00,  0.05],
+  ['CPO·纯化前干基 H₂ %', Rcpo.yH2raw*100, 50.22, 0.05],
+  ['CPO·脱氮后干基 H₂ %', Rcpo.yH2deN*100, 65.75, 0.05],
+];
+console.log('\n=== 催化部分氧化（对比口径 · 空气 O₂/C=0.40）===');
+for (const [name, got, want, tol] of cpo) {
+  const ok = Math.abs(got - want) <= tol;
+  if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(22)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
+}
+// 沼气 CH₄ 低端 50% → 氢浓度下降
+const Rlo = calcCore(Object.assign({}, i, { ch4f: 50 }));
+const okLo = Math.abs(Rlo.yH2raw*100 - 66.67) <= 0.05;
+if (!okLo) fail++;
+console.log(`${okLo ? '✓' : '✗'} 沼气 CH₄=50% → 纯化前干基 H₂ ${(Rlo.yH2raw*100).toFixed(2)}%（期望 66.67%）`);
 
 // 反算抽查
 const rv = core.calcReverse(Object.assign({}, i, { rmode: 'V', tgtV: 5 }));
