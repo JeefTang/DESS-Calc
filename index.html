@@ -131,10 +131,15 @@
     </details>
 
     <details class="grp" open>
-      <summary>C 产水</summary>
+      <summary>C 产水 / 重整配气</summary>
       <div class="fields">
         <div class="row"><label>产水回收率<small>冷凝回收，70%~90%</small></label><div><input id="recov" type="number" value="80" step="1" min="0" max="100"></div></div>
-        <div class="row"><label>水碳比 S/C<small>参考值，用于算净水账</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
+        <div class="row"><label>水碳比 S/C<small>重整配气加汽比（蒸汽量按此算）</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
+        <div class="radio-line">
+          <label><input type="radio" name="heatMode" value="auto" checked> 重整供热：自热耦合（反应器自热 · 不外供蒸汽）</label>
+          <label><input type="radio" name="heatMode" value="ext"> 外供蒸汽（外部锅炉供 S/C 蒸汽）</label>
+        </div>
+        <div class="row" id="rowSelfSteam"><label>自产蒸汽占比<small>自热耦合：蒸汽由反应过程自产/系统回收，默认 100%</small></label><div><input id="steamSelf" type="number" value="100" step="1" min="0" max="100"></div></div>
       </div>
     </details>
 
@@ -276,8 +281,11 @@ function calcCore(i){
   var mH2ORecov  = mH2OTheory * recov;            // L/h
   var waterRate  = mH2OTheory / P;                // kg/kWh
 
-  // ④ 重整配汽
+  // ④ 重整配气：S/C 蒸汽需求；自热耦合下蒸汽由反应过程自产（不外供蒸汽）
   var steamNeed = (VCH4 / C.MOLAR_VOL) * sc * 18; // kg/h
+  var steamSelfFrac = (i.heatMode === 'ext') ? 0 : (i.steamSelf || 0); // 自产比例（外供模式=0）
+  var steamSelf = steamNeed * steamSelfFrac;       // kg/h 自产（反应过程产生/系统回收）
+  var steamExt  = steamNeed - steamSelf;           // kg/h 需外部供给的蒸汽
 
   // ⑤ 余热 -> 热水
   var Qavail;
@@ -299,7 +307,7 @@ function calcCore(i){
   var yMWh = P * i.h / 1000;
   var yCH4 = VCH4 * i.h;
   var costCH4 = yCH4 * i.pCH4;
-  var netMakeup = Math.max(0, steamNeed - mH2ORecov);   // kg/h 净补水
+  var netMakeup = Math.max(0, steamExt - mH2ORecov);   // kg/h 净补水（仅需外供的蒸汽计入）
   var yWater = netMakeup * i.h / 1000;                  // m³/年
   var costWater = yWater * i.pWater;
   var yHot = Vhot * i.h;                                // m³/年
@@ -351,6 +359,7 @@ function calcCore(i){
   return {
     mH2:mH2, VH2:VH2, VCH4:VCH4, mCH4:mCH4, etaAll:etaAll, VCH4Theory:VCH4Theory,
     mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
+    steamSelf:steamSelf, steamExt:steamExt,
     Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
     mCO2:mCO2, yCO2:yCO2,
     yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
@@ -389,6 +398,7 @@ var f = function(v, n){ if(!isFinite(v)) return '—';
 var DEFAULTS = {
   P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
   Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
+  steamSelf:100,
   pCH4:3.20, pElec:0.70, pWater:4.00, pHeat:60,
   inv:172.57, opexRate:2, life:10, disc:6, subsidy:0
 };
@@ -398,6 +408,8 @@ function readInputs(){
     P:num('P',100), eta:pct('eta',0.5), h:num('h',8000), r:num('r',5),
     psa:pct('psa',0.8), refconv:pct('refconv',0.9),
     recov:pct('recov',0.8), sc:num('sc',5),
+    heatMode:(document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto',
+    steamSelf:pct('steamSelf',1),
     qmode:document.querySelector('input[name=qmode]:checked').value,
     Q:num('Q',100), steamT:num('steamT',1), steamTemp:num('steamTemp',600),
     Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
@@ -445,12 +457,28 @@ function render(){
     kpi('理论产水', f(R.mH2OTheory,2), 'kg/h', 'm_H2O = m_H2 × 9', 'hi') +
     kpi('实际回收产水', f(R.mH2ORecov,1), 'L/h', '理论产水 × 回收率 '+(i.recov*100).toFixed(0)+'%') +
     kpi('产水率', f(R.waterRate,2), 'kg/kWh', '理论产水 ÷ 电功率 P') +
-    kpi('重整配汽需求', f(R.steamNeed,2), 'kg/h',
-        '(V_CH4 ÷ 22.414) × S/C × 18') +
-    kpi('净补水', f(R.netMakeup,2), 'kg/h', '配汽需求 − 回收产水（下限 0）') ;
-  $('waterNote').innerHTML =
-    '<b>注意：系统整体是净耗水的。</b>重整配汽量（S/C='+f(i.sc,1)+' → '+f(R.steamNeed,2)+' kg/h）'+
-    '通常大于燃料电池产水量（'+f(R.mH2ORecov,2)+' L/h），水账应按「补充水」看，<b>不要</b>按「产水外供」讲。';
+    kpi('重整配气·蒸汽需求', f(R.steamNeed,2), 'kg/h',
+        '(V_CH4 ÷ 22.414) × S/C × 18（S/C='+f(i.sc,1)+'）') +
+    kpi('其中·自产蒸汽', f(R.steamSelf,2), 'kg/h',
+        i.heatMode==='ext' ? '外供蒸汽模式：不自产' : ('自热耦合：反应过程自产 '+f((i.steamSelf||0)*100,0)+'%'),
+        i.heatMode==='auto' ? 'hi' : '') +
+    kpi('需外供蒸汽', f(R.steamExt,2), 'kg/h',
+        '蒸汽需求 − 自产', R.steamExt > 0 ? 'warn' : '') +
+    kpi('净补水', f(R.netMakeup,2), 'kg/h', '外供蒸汽 − 回收产水（下限 0）') ;
+  if (i.heatMode === 'auto') {
+    $('waterNote').innerHTML =
+      '<b>自热耦合口径（反应器自热，不需外通蒸汽）：</b>重整用汽由反应过程自产（部分燃料氧化/变换产汽 + 系统水热回收），'+
+      '配气蒸汽需求 '+f(R.steamNeed,2)+' kg/h 中自产 '+f(R.steamSelf,2)+' kg/h、需外供 '+f(R.steamExt,2)+' kg/h；'+
+      '净补水 ＝ 外供蒸汽 − 回收产水（'+f(R.mH2ORecov,2)+' L/h）＝ <b>'+f(R.netMakeup,2)+' kg/h</b>。'+
+      (R.netMakeup <= 0
+        ? '<br><b>→ 系统水自平衡：反应产水 + 冷凝回收即可满足重整用汽，无需外部补充水。</b>'
+        : '<br>→ 自产蒸汽不足以覆盖用汽，仍需外部补水。');
+  } else {
+    $('waterNote').innerHTML =
+      '<b>外供蒸汽口径（对比）：</b>S/C 蒸汽由外部锅炉供给，全部计入外部需水。'+
+      '重整配汽量（S/C='+f(i.sc,1)+' → '+f(R.steamNeed,2)+' kg/h）'+
+      '通常大于燃料电池产水量（'+f(R.mH2ORecov,2)+' L/h），水账应按「补充水」看，<b>不要</b>按「产水外供」讲。';
+  }
 
   /* --- 余热 --- */
   $('gridHeat').innerHTML =
@@ -551,7 +579,9 @@ function render(){
   c += trow('甲烷理论反推 vs 实际取值', f(R.VCH4Theory,2)+' / '+f(R.VCH4,2)+' Nm³/h',
       (R.VCH4 > R.VCH4Theory ? '实际偏高（偏乐观）' : '实际偏低（偏保守）'));
   c += trow('氢耗体积校核', f(R.VH2/R.mH2,4)+' Nm³/kg', '理论 1/0.0899 = 11.1235');
-  c += trow('水账校核（配汽 − 回收产水）', f(R.steamNeed-R.mH2ORecov,2)+' kg/h');
+  c += trow('重整配气·自产 / 外供蒸汽', f(R.steamSelf,2)+' / '+f(R.steamExt,2)+' kg/h',
+      i.heatMode==='auto' ? '自热耦合：不外通蒸汽' : '外供蒸汽模式');
+  c += trow('水账校核（外供蒸汽 − 回收产水）', f(R.steamExt-R.mH2ORecov,2)+' kg/h', '净补水下限 0');
   c += trow('热水热平衡校核', f(R.heatGJ,4)+' GJ/h', '@ η_hex='+f(i.etaHex,2)+' / ΔT='+f(i.Tout-i.Tin,0)+' K');
   c += '</tbody>';
   $('tblCheck').innerHTML = c;
@@ -601,7 +631,9 @@ function buildText(){
   o.push('全链路效率：'+(R.etaAll*100).toFixed(1)+'%'+(R.etaAll>0.5?' ⚠ 偏高（气电比偏乐观）':''));
   o.push('— 水账（净耗水）—');
   o.push('理论产水：'+f(R.mH2OTheory,2)+' kg/h；回收 '+f(R.mH2ORecov,2)+' L/h；产水率 '+f(R.waterRate,2)+' kg/kWh');
-  o.push('重整配汽：'+f(R.steamNeed,2)+' kg/h；净补水 '+f(R.netMakeup,2)+' kg/h');
+  o.push('重整配气：蒸汽需求 '+f(R.steamNeed,2)+' kg/h（'+ (i.heatMode==='auto'
+        ? '自热耦合 · 自产 '+f(R.steamSelf,2)+' / 外供 '+f(R.steamExt,2)+' kg/h'
+        : '外供蒸汽（外部锅炉）') +'）；净补水 '+f(R.netMakeup,2)+' kg/h');
   o.push('— 余热 —');
   o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
   o.push('— 碳排放 —');
@@ -639,6 +671,7 @@ $('btnReset').onclick = function(){
   Object.keys(DEFAULTS).forEach(function(k){ if($(k)) $(k).value = DEFAULTS[k]; });
   document.querySelector('input[name=qmode][value=Q]').checked = true;
   document.querySelector('input[name=rmode][value=off]').checked = true;
+  document.querySelector('input[name=heatMode][value=auto]').checked = true;
   toggleRows(); render();
 };
 
@@ -650,6 +683,8 @@ function toggleRows(){
   var rm = document.querySelector('input[name=rmode]:checked').value;
   $('rowRP').style.display = rm==='P' ? '' : 'none';
   $('rowRV').style.display = rm==='V' ? '' : 'none';
+  var hm = (document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto';
+  $('rowSelfSteam').style.display = hm==='auto' ? '' : 'none';
 }
 
 /* 输入变化即时重算 */
@@ -657,7 +692,7 @@ document.addEventListener('input', function(ev){
   if (ev.target.closest && ev.target.closest('.col-in')) render();
 });
 document.addEventListener('change', function(ev){
-  if (ev.target.name === 'qmode' || ev.target.name === 'rmode'){ toggleRows(); render(); }
+  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode'){ toggleRows(); render(); }
 });
 
 toggleRows();
