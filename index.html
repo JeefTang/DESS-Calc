@@ -136,11 +136,16 @@
         <div class="row"><label>产水回收率<small>冷凝回收，70%~90%</small></label><div><input id="recov" type="number" value="80" step="1" min="0" max="100"></div></div>
         <div class="row"><label>水碳比 S/C<small>重整配气加汽比（蒸汽量按此算）</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
         <div class="radio-line">
+          <label><input type="radio" name="heatSrc" value="burner" checked> 重整器加热：内置燃烧器（协议口径 · 烧部分燃料气间接加热）</label>
+          <label><input type="radio" name="heatSrc" value="cpo"> 催化部分氧化（配空气入床 · 对比）</label>
+        </div>
+        <div class="radio-line" id="rowOxid">
           <label><input type="radio" name="oxid" value="air" checked> 氧化剂：空气（21% O₂）</label>
           <label><input type="radio" name="oxid" value="o2"> 纯氧</label>
           <label><input type="radio" name="oxid" value="none"> 不配</label>
         </div>
-        <div class="row" id="rowOC"><label>氧碳比 O₂/C<small>mol/mol｜⚠️ 热中性估算，待工艺包确认</small></label><div><input id="oc" type="number" value="0.40" step="0.01" min="0" max="1"></div></div>
+        <div class="row" id="rowOC"><label>氧碳比 O₂/C<small>mol/mol｜仅催化部分氧化模式；⚠️ 热中性估算，待工艺包确认</small></label><div><input id="oc" type="number" value="0.40" step="0.01" min="0" max="1"></div></div>
+        <div class="row" id="rowCH4F"><label>沼气 CH₄ 含量<small>%（协议 50~70）｜仅用于进堆氢浓度参考</small></label><div><input id="ch4f" type="number" value="60" step="1" min="30" max="100"></div></div>
         <div class="radio-line">
           <label><input type="radio" name="heatMode" value="auto" checked> 重整供热：自热耦合（反应器自热 · 不外供蒸汽）</label>
           <label><input type="radio" name="heatMode" value="ext"> 外供蒸汽（外部锅炉供 S/C 蒸汽）</label>
@@ -297,23 +302,31 @@ function calcCore(i){
   var steamSelf = steamNeed * steamSelfFrac;       // kg/h 自产（反应过程产生/系统回收）
   var steamExt  = steamNeed - steamSelf;           // kg/h 需外部供给的蒸汽
 
-  // ④b 氧化剂配入（自热耦合：催化部分氧化供热，非燃烧器）
-  var oc    = (i.oxid === 'none') ? 0 : (i.oc || 0);   // O₂/C mol/mol
-  var vO2   = VCH4 * oc;                               // Nm³/h 纯氧需求
+  // ④b 重整器加热方式
+  //   内置燃烧器（协议口径·默认）：烧部分燃料气间接加热，空气仅供燃烧助燃、不进工艺气
+  //   催化部分氧化（对比）：空气配入催化床供热，N₂ 随工艺气稀释富氢
+  var heatSrc = i.heatSrc || 'burner';
+  var isBurner = (heatSrc === 'burner');
+  var oc    = (isBurner || i.oxid === 'none') ? 0 : (i.oc || 0);   // O₂/C mol/mol（仅 CPO 有效）
+  var vO2   = VCH4 * oc;                               // Nm³/h 纯氧需求（CPO）
   var vAir  = (i.oxid === 'air') ? vO2 / 0.21 : 0;     // Nm³/h 空气量（21% O₂）
-  var vN2   = vAir * 0.79;                             // Nm³/h 空气带入 N₂
+  var vN2   = vAir * 0.79;                             // Nm³/h 空气带入 N₂（仅 CPO 进工艺气）
   var vOxid = (i.oxid === 'o2') ? vO2 : vAir;          // Nm³/h 实际配入的氧化剂流量
 
   // ④c 变换气（干基）组成 & 进堆氢浓度参考（化学计量估算·全转化假设）
-  //   部分 CH₄ 走催化部分氧化（CH₄+½O₂→CO+2H₂，再变换 → 每 CH₄ 得 3 H₂）；
-  //   其余走蒸汽重整（每 CH₄ 得 4 H₂）→ H₂ = V_CH4 × (4 − 2·O₂/C)
-  var cH2  = VCH4 * (4 - 2 * oc);                      // Nm³/h 化学计量氢（配 O₂ 后）
-  var cCO2 = VCH4;                                     // Nm³/h 碳→CO₂（全部碳）
-  var cN2  = (i.oxid === 'air') ? VCH4 * oc / 0.21 * 0.79 : 0;  // Nm³/h 空气带入 N₂
+  //   内置燃烧器：工艺气 = 沼气 + 自产蒸汽，纯蒸汽重整 → 每 CH₄ 得 4 H₂
+  //   催化部分氧化：部分 CH₄ 走 CH₄+½O₂→CO+2H₂（再变换，每 CH₄ 得 3 H₂）
+  //   CO₂ = 甲烷转化 + 沼气自带 CO₂（按沼气 CH₄ 分数 ch4f 折算）
+  var ch4f = (i.ch4f || 60) / 100;                     // 沼气 CH₄ 体积分数
+  var feedCO2Ratio = ch4f > 0 ? (1 - ch4f) / ch4f : 0; // 每 Nm³ CH₄ 对应沼气自带 CO₂
+  var cH2  = isBurner ? VCH4 * 4 : VCH4 * (4 - 2 * oc); // Nm³/h 化学计量氢
+  var cCO2 = VCH4 * (1 + feedCO2Ratio);                // Nm³/h 碳→CO₂ + 沼气自带 CO₂
+  var cN2  = (!isBurner && i.oxid === 'air') ? VCH4 * oc / 0.21 * 0.79 : 0;  // Nm³/h
   var cDry = cH2 + cCO2 + cN2;                         // Nm³/h 干基总量
-  var yH2raw = cDry > 0 ? cH2 / cDry : 0;              // 纯化前·干基 H₂（含 N₂ 稀释）
+  var yH2raw = cDry > 0 ? cH2 / cDry : 0;              // 纯化前·干基 H₂
   var yH2deN = (cH2 + cCO2) > 0 ? cH2 / (cH2 + cCO2) : 0;       // 脱氮后（仅脱 N₂，CO₂ 未脱）
   var mH2Stoich = cH2 * 0.0899;                        // kg/h 化学计量氢质量
+  var vBiogas = ch4f > 0 ? VCH4 / ch4f : VCH4;         // Nm³/h 沼气体积（含 CO₂）
 
   // ⑤ 余热 -> 热水
   var Qavail;
@@ -389,6 +402,7 @@ function calcCore(i){
     mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
     steamSelf:steamSelf, steamExt:steamExt,
     oc:oc, vO2:vO2, vAir:vAir, vN2:vN2, vOxid:vOxid,
+    heatSrc:heatSrc, isBurner:isBurner, ch4f:ch4f, vBiogas:vBiogas,
     cH2:cH2, cCO2:cCO2, cN2:cN2, cDry:cDry,
     yH2raw:yH2raw, yH2deN:yH2deN, mH2Stoich:mH2Stoich,
     Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
@@ -429,7 +443,7 @@ var f = function(v, n){ if(!isFinite(v)) return '—';
 var DEFAULTS = {
   P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
   Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
-  steamSelf:100, oc:0.40,
+  steamSelf:100, oc:0.40, ch4f:60, heatSrc:'burner',
   pCH4:3.20, pElec:0.70, pWater:4.00, pHeat:60,
   inv:172.57, opexRate:2, life:10, disc:6, subsidy:0
 };
@@ -443,6 +457,8 @@ function readInputs(){
     steamSelf:pct('steamSelf',1),
     oxid:(document.querySelector('input[name=oxid]:checked')||{}).value || 'air',
     oc:num('oc',0.40),
+    ch4f:num('ch4f',60),
+    heatSrc:(document.querySelector('input[name=heatSrc]:checked')||{}).value || 'burner',
     qmode:document.querySelector('input[name=qmode]:checked').value,
     Q:num('Q',100), steamT:num('steamT',1), steamTemp:num('steamTemp',600),
     Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
@@ -487,6 +503,7 @@ function render(){
 
   /* --- 重整配气 --- */
   var oxName = i.oxid==='air' ? '空气（21% O₂）' : (i.oxid==='o2' ? '纯氧' : '不配（纯蒸汽重整）');
+  var srcName = R.isBurner ? '内置燃烧器（烧部分燃料气）' : '催化部分氧化（配'+oxName+'入床）';
   $('gridFeed').innerHTML =
     kpi('重整蒸汽需求', f(R.steamNeed,2), 'kg/h', '(V_CH4 ÷ 22.414) × S/C × 18（S/C='+f(i.sc,1)+'）') +
     kpi('其中·自产蒸汽', f(R.steamSelf,2), 'kg/h',
@@ -494,30 +511,40 @@ function render(){
         i.heatMode==='auto' ? 'hi' : '') +
     kpi('需外供蒸汽', f(R.steamExt,2), 'kg/h',
         '蒸汽需求 − 自产', R.steamExt > 0 ? 'warn' : '') +
-    kpi('氧化剂', oxName, '', '自热耦合：催化部分氧化供热') +
-    kpi('O₂ 配入', f(R.vO2,2), 'Nm³/h',
-        'V_CH4 × O₂/C（O₂/C='+f(i.oc,2)+'）', i.oxid!=='none' ? 'hi' : '') +
-    kpi(i.oxid==='o2' ? '氧化剂流量' : '空气配入', f(R.vOxid,2), 'Nm³/h',
-        i.oxid==='air' ? 'O₂ ÷ 0.21' : (i.oxid==='o2' ? '纯氧直配' : '不配氧化剂')) +
-    (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '') +
+    kpi('重整器加热', R.isBurner ? '内置燃烧器' : '催化部分氧化', '',
+        R.isBurner ? '协议口径：燃料气+空气→燃烧器，间接加热；空气不进工艺气' : '对比口径：空气入床，N₂ 稀释富氢') +
+    (R.isBurner
+      ? kpi('助燃空气', '不进工艺气', '', '燃烧烟气单独排放，不带 N₂ 进产氢路')
+      : (kpi('O₂ 配入', f(R.vO2,2), 'Nm³/h',
+            'V_CH4 × O₂/C（O₂/C='+f(i.oc,2)+'）', i.oxid!=='none' ? 'hi' : '') +
+         kpi(i.oxid==='o2' ? '氧化剂流量' : '空气配入', f(R.vOxid,2), 'Nm³/h',
+            i.oxid==='air' ? 'O₂ ÷ 0.21' : (i.oxid==='o2' ? '纯氧直配' : '不配氧化剂')))) +
+    (R.isBurner ? '' : (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '')) +
+    kpi('沼气 CH₄ 含量', f(i.ch4f,0), '%', '协议 50~70；沼气量 '+f(R.vBiogas,1)+' Nm³/h（含 CO₂）') +
     kpi('变换气·干基 H₂', f(R.yH2raw*100,1), '%',
-        '纯化前·化学计量估算（含 N₂ 稀释；未脱除时进堆浓度）', R.yH2raw<0.70 ? 'warn' : '') +
+        '纯化前·化学计量估算（SR 全转化；含沼气自带 CO₂ 稀释）', R.yH2raw<0.70 ? 'warn' : '') +
     kpi('脱氮后·干基 H₂', f(R.yH2deN*100,1), '%',
-        '仅脱 N₂（CO₂ 未脱）；脱碳后更高', R.yH2deN>=0.70 ? 'hi' : 'warn') +
+        R.isBurner ? '内置燃烧器：工艺气无 N₂，与纯化前相同' : '仅脱 N₂（CO₂ 未脱）', R.yH2deN>=0.70 ? 'hi' : 'warn') +
     kpi('进堆氢浓度（参考）', (R.yH2deN>=0.70 ? '≥70' : f(R.yH2deN*100,0)), '%',
         '协议要求 ≥70%（体积）；详见下方说明', R.yH2deN>=0.70 ? 'hi' : 'warn');
   $('feedNote').innerHTML =
-    '<b>自热耦合（催化部分氧化）：</b>反应器<b>无燃烧器</b>，热量由催化床内的部分氧化反应提供，与蒸汽重整耦合，故<b>不需外供蒸汽</b>；'+
-    '重整用汽由反应过程自产。配气 = 沼气(CH₄) + '+ (i.oxid==='none' ? '（不配氧化剂）' : oxName) +' + 自产蒸汽。'+
-    (i.oxid==='air'
-      ? '<br>⚠️ 配空气会带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/纯化，<b>稀释富氢气</b>。'
+    (R.isBurner
+      ? '<b>协议口径（内置燃烧器）：</b>重整反应器<b>内置燃烧器</b>，燃烧部分燃料气（沼气/PSA 尾气）提供重整吸热；'
+        + '燃烧器<b>间接加热</b>，烟气单独排放，<b>空气不进工艺气</b>。工艺气 = 沼气(CH₄) + 自产蒸汽。'
+      : '<b>对比口径（催化部分氧化）：</b>反应器<b>无燃烧器</b>，热量由催化床内的部分氧化反应提供，与蒸汽重整耦合；'
+        + '配气 = 沼气(CH₄) + '+ (i.oxid==='none' ? '（不配氧化剂）' : oxName) +' + 自产蒸汽。') +
+    (!R.isBurner && i.oxid==='air'
+      ? '<br>⚠️ 配空气带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/纯化，<b>稀释富氢气</b>。'
       : '') +
-    '<br><br><b>进堆氢浓度（参考）：</b>纯化前变换气（干基）H₂ ≈ <b>'+f(R.yH2raw*100,1)+'%</b>（借 N₂ 稀释）；'+
-    '经纯化单元（含<b>脱氮吸附塔</b>）脱除 N₂ 后 ≈ <b>'+f(R.yH2deN*100,1)+'%</b>，再脱碳可更高 → <b>满足协议 ≥70%（体积），CO&lt;10 ppm</b>。'+
-    '<br>⚠️ 若<b>不脱氮</b>（N₂ 全进堆），氢浓度仅 '+f(R.yH2raw*100,1)+'%，<b>达不到 ≥70%</b>；'+
-    '要无脱氮直接达标，需 O₂/C ≲ 0.16（但供热量随之下降）——故本项目配空气<u>必须</u>依靠纯化单元脱氮。'+
-    '<br>口径：化学计量估算（全转化假设）；配气 O₂/C ↑ → 氢浓度 ↓；与主口径氢耗自洽的 O₂/C ≈ 0.33。'+
-    '<br>⚠️ O₂/C 默认 '+f(i.oc,2)+' 为<b>热中性估算值</b>（≈0.35~0.45，随 S/C、反应温度变化），<b>请以工艺包/实测确认</b>。';
+    '<br><br><b>进堆氢浓度（参考）：</b>纯化前变换气（干基）H₂ ≈ <b>'+f(R.yH2raw*100,1)+'%</b>'
+    + (R.isBurner ? '（稀释来自<b>沼气自带的 CO₂</b>，'+f((1-R.ch4f)*100,0)+'%；工艺气无 N₂）'
+                  : '（含 N₂ 稀释）')
+    + '；经纯化单元吸附脱除 CO₂/CO/CH₄/N₂ 后，进堆 H₂ <b>≥70%（体积），CO&lt;10 ppm</b>' +
+    '（本项目工艺气含 N₂，纯化单元含<b>脱氮吸附塔</b>，与设备清单一致）。'
+    + '<br>口径：化学计量估算（SR 全转化假设）；沼气 CH₄ 含量 ↑ → 氢浓度 ↑（当前 '+f(R.yH2raw*100,1)+'%）；'
+    + (R.isBurner ? '' : '配气 O₂/C ↑ → 氢浓度 ↓；')
+    + '与主口径氢耗自洽的 O₂/C ≈ 0.33。'
+    + '<br>⚠️ 若选「催化部分氧化」，O₂/C 默认 '+f(i.oc,2)+' 为<b>热中性估算值</b>（≈0.35~0.45），<b>请以工艺包/实测确认</b>。';
 
   /* --- 水账 --- */
   $('gridWater').innerHTML =
@@ -641,9 +668,10 @@ function render(){
   c += trow('氢耗体积校核', f(R.VH2/R.mH2,4)+' Nm³/kg', '理论 1/0.0899 = 11.1235');
   c += trow('重整配气·自产 / 外供蒸汽', f(R.steamSelf,2)+' / '+f(R.steamExt,2)+' kg/h',
       i.heatMode==='auto' ? '自热耦合：不外通蒸汽' : '外供蒸汽模式');
-  c += trow('氧化剂配入（O₂/C='+f(i.oc,2)+'）', f(R.vO2,2)+' Nm³/h O₂' +
-      (i.oxid==='air' ? '（空气 '+f(R.vAir,2)+'，含 N₂ '+f(R.vN2,2)+'）' : ''),
-      i.oxid==='none' ? '不配氧化剂' : '催化部分氧化供热');
+  c += trow('重整器加热（'+ (R.isBurner ? '内置燃烧器' : '催化部分氧化') +'）',
+      R.isBurner ? '燃料气间接加热·空气不进工艺气'
+                 : (f(R.vO2,2)+' Nm³/h O₂' + (i.oxid==='air' ? '（空气 '+f(R.vAir,2)+'，含 N₂ '+f(R.vN2,2)+'）' : '')),
+      R.isBurner ? '协议口径' : '对比口径（催化部分氧化供热）');
   c += trow('水账校核（外供蒸汽 − 回收产水）', f(R.steamExt-R.mH2ORecov,2)+' kg/h', '净补水下限 0');
   c += trow('进堆氢浓度（参考）', '纯化前 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%',
       R.yH2deN>=0.70 ? '满足协议 ≥70%（体积）、CO<10 ppm' : '⚠️ 低于协议 ≥70%，需增脱氮');
@@ -676,7 +704,8 @@ function render(){
 
   /* --- 脚注 --- */
   $('foot').innerHTML =
-    '工艺：催化重整制氢（无燃烧器·催化部分氧化自热）· 反应器自热耦合 · 重整用汽由反应过程自产、不外供蒸汽。<br>'+
+    '工艺：蒸汽重整制氢（内置燃烧器供热·协议口径）· 重整用汽由反应过程自产、不外供蒸汽。<br>'+
+    '（可选对比：催化部分氧化·配空气入床）<br>'+
     '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）。<br>'+
     '氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'+
     '<b>免责说明：</b>本工具为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'+
@@ -700,10 +729,13 @@ function buildText(){
   o.push('重整配气：蒸汽需求 '+f(R.steamNeed,2)+' kg/h（'+ (i.heatMode==='auto'
         ? '自热耦合 · 自产 '+f(R.steamSelf,2)+' / 外供 '+f(R.steamExt,2)+' kg/h'
         : '外供蒸汽（外部锅炉）') +'）；净补水 '+f(R.netMakeup,2)+' kg/h');
-  o.push('氧化剂：'+ (i.oxid==='air' ? '空气' : (i.oxid==='o2' ? '纯氧' : '不配')) +
-        '，O₂/C='+f(i.oc,2)+' → O₂ '+f(R.vO2,2)+' Nm³/h' +
-        (i.oxid==='air' ? '；空气 '+f(R.vAir,2)+' Nm³/h（含 N₂ '+f(R.vN2,2)+'）' : ''));
-  o.push('进堆氢浓度（参考）：纯化前干基 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%（协议要求 ≥70%）');
+  o.push('重整器加热：'+ (R.isBurner ? '内置燃烧器（烧部分燃料气·协议口径）' : '催化部分氧化（配空气入床）'));
+  if (!R.isBurner) {
+    o.push('氧化剂：'+ (i.oxid==='air' ? '空气' : (i.oxid==='o2' ? '纯氧' : '不配')) +
+          '，O₂/C='+f(i.oc,2)+' → O₂ '+f(R.vO2,2)+' Nm³/h' +
+          (i.oxid==='air' ? '；空气 '+f(R.vAir,2)+' Nm³/h（含 N₂ '+f(R.vN2,2)+'）' : ''));
+  }
+  o.push('进堆氢浓度（参考）：纯化前干基 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%（协议要求 ≥70%；沼气 CH₄='+f(i.ch4f,0)+'%）');
   o.push('— 余热 —');
   o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
   o.push('— 碳排放 —');
@@ -742,6 +774,7 @@ $('btnReset').onclick = function(){
   document.querySelector('input[name=qmode][value=Q]').checked = true;
   document.querySelector('input[name=rmode][value=off]').checked = true;
   document.querySelector('input[name=heatMode][value=auto]').checked = true;
+  document.querySelector('input[name=heatSrc][value=burner]').checked = true;
   document.querySelector('input[name=oxid][value=air]').checked = true;
   toggleRows(); render();
 };
@@ -756,8 +789,11 @@ function toggleRows(){
   $('rowRV').style.display = rm==='V' ? '' : 'none';
   var hm = (document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto';
   $('rowSelfSteam').style.display = hm==='auto' ? '' : 'none';
+  var hs = (document.querySelector('input[name=heatSrc]:checked')||{}).value || 'burner';
+  var cpo = hs === 'cpo';
+  $('rowOxid').style.display = cpo ? '' : 'none';
   var ox = (document.querySelector('input[name=oxid]:checked')||{}).value || 'air';
-  $('rowOC').style.display = ox==='none' ? 'none' : '';
+  $('rowOC').style.display = (cpo && ox!=='none') ? '' : 'none';
 }
 
 /* 输入变化即时重算 */
@@ -765,7 +801,7 @@ document.addEventListener('input', function(ev){
   if (ev.target.closest && ev.target.closest('.col-in')) render();
 });
 document.addEventListener('change', function(ev){
-  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode' || ev.target.name === 'oxid'){ toggleRows(); render(); }
+  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode' || ev.target.name === 'heatSrc' || ev.target.name === 'oxid'){ toggleRows(); render(); }
 });
 
 toggleRows();
