@@ -20,6 +20,9 @@ const i = {
   Tin: 15, Tout: 50, etaHex: 0.75,
   pCH4: 3.20, pElec: 0.70, pWater: 4.00, pHeat: 60,
   inv: 172.57, opexRate: 0.02, life: 10, disc: 0.06, subsidy: 0,
+  // 碳资产（默认=页面默认：养殖场沼气 · 直排放空 · 生物源 · GWP100 · 计入替代电网）
+  gasType: 'biogas', baseMode: 'vent', flareEff: 0.98, gwp: 28, carbonType: 'biogenic',
+  gridEF: 0.5568, countGrid: true, pCarbon: 70, creditYears: 10, includeCarbon: true,
   rmode: 'off', tgtP: 200, tgtV: 5
 };
 const R = calcCore(i);
@@ -43,15 +46,21 @@ const cases = [
 //    运维 2%/年；寿命 10 年；折现率 6%）
 // ⚠ 2026-10-15 口径修正：重整改为「自热耦合」默认（不外供蒸汽，自产占比 100%）
 //    → 净补水 0 → 年水费 0，故净收益/回收期较旧版（外供蒸汽口径）略有变化
+// ⚠ 2026-10-15 新增：碳资产模块（默认计入）→ 年净收益/回收期含碳收益
 const econ = [
   ['年发电收益 万元',  R.revElec/10000,   56.00,  0.01],
   ['年供热收益 万元',  R.revHeat/10000,   12.96,  0.01],
+  ['年碳收益 万元',    R.revCarbon/10000, 25.60,  0.02],
   ['年运维费 万元',    R.opex/10000,       3.4514, 0.01],
-  ['年净收益 万元',    R.netAnnual/10000, 14.31,  0.02],
-  ['静态回收期 年',    R.payback,         12.06,  0.05],
-  ['ROI %/年',        R.roi*100,          8.29,  0.02],
-  ['NPV 万元',        R.npv/10000,      -67.26,  0.50],
-  ['寿命期累计 万元',  R.cumProfit/10000, 143.09,  0.10],
+  ['年收益合计 万元',  R.revTotal/10000,  94.56,  0.02],
+  ['年净收益 万元',    R.netAnnual/10000, 39.91,  0.02],
+  ['静态回收期 年',    R.payback,          4.32,  0.02],
+  ['不含碳回收期 年',  R.paybackNoC,      12.06,  0.05],
+  ['ROI %/年',        R.roi*100,         23.13,  0.05],
+  ['NPV 万元',        R.npv/10000,      121.18,  0.50],
+  ['动态回收期 年',    R.discPayback,       5.16,  0.05],
+  ['碳收益占比 %',     R.carbonShare*100,  27.07,  0.05],
+  ['寿命期累计 万元',  R.cumProfit/10000, 399.12,  0.10],
 ];
 
 console.log('=== 对照任务说明 §5 校验表（P=100kW, η=50%, r=5, 回收0.8, Q=100kW, η_hex=0.75, 15→50℃）===');
@@ -160,6 +169,63 @@ console.log(`${okLo ? '✓' : '✗'} 沼气 CH₄=50% → 纯化前干基 H₂ $
 // 反算抽查
 const rv = core.calcReverse(Object.assign({}, i, { rmode: 'V', tgtV: 5 }));
 console.log(`  反算 5 m³/h 热水 → 需 Q=${rv.reqQ.toFixed(1)} kW, 600℃蒸汽 ${rv.reqSteam.toFixed(3)} t/h`);
+
+console.log('\n=== ⑨ 碳资产（默认：养殖场沼气 · 直排放空 · 生物源 · GWP100=28 · 碳价 70 元/tCO₂e）===');
+const carbon = [
+  ['甲烷质量流量 t/h',  R.CH4_t,            0.01434, 0.00001],
+  ['基准线(直排) t/年', R.beCH4*i.h,        3212.16, 0.5],
+  ['替代电网 t/年',    R.gridAvoid*i.h,      445.44, 0.5],
+  ['项目排放 t/年',    R.peCH4*i.h,           0.00, 0.001],
+  ['净减排 tCO₂e/年',  R.erY,              3657.6,  1.0],
+  ['减排强度 kg/kWh',  R.erIntensity,         4.572, 0.01],
+  ['年碳收益 万元',    R.carbonRevY/10000,   25.60,  0.02],
+  ['计入期累计 t',     R.carbonCum,        36576,   10],
+  ['碳资产现值 万元',  R.carbonNPV/10000,   188.41, 0.5],
+];
+for (const [name, got, want, tol] of carbon) {
+  const ok = Math.abs(got - want) <= tol;
+  if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(18)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(8)}  容差±${tol}`);
+}
+
+console.log('\n=== 气源预设差异（同一机组 P=100kW）===');
+// 油田伴生气：火炬基准 + 化石源 → 减排量大幅低于沼气直排
+const Rof = calcCore(Object.assign({}, i, { gasType:'oilfield', ch4f:85, baseMode:'flare', carbonType:'fossil' }));
+const of = [
+  ['伴生气·基准线 t/年', Rof.beCH4*8000, 372.20, 0.5],
+  ['伴生气·项目排放 t/年', Rof.peCH4*8000, 314.24, 0.5],
+  ['伴生气·净减排 t/年', Rof.erY,         503.40, 1.0],
+  ['伴生气·年碳收益 万元', Rof.carbonRevY/10000, 3.52, 0.05],
+];
+for (const [name, got, want, tol] of of) {
+  const ok = Math.abs(got - want) <= tol; if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(22)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(8)}  容差±${tol}`);
+}
+// 煤矿瓦斯（井下）：直排 + 化石源
+const Rcmm = calcCore(Object.assign({}, i, { gasType:'cmm', ch4f:45, baseMode:'vent', carbonType:'fossil' }));
+const okCmm = Math.abs(Rcmm.erY - 3343.36) <= 1;
+if (!okCmm) fail++;
+console.log(`${okCmm ? '✓' : '✗'} 煤矿瓦斯·净减排 t/年  计算=${Rcmm.erY.toFixed(2).padStart(10)}  期望≈  3343.36  容差±1（直排×GWP − 化石项目排放）`);
+// 沼泽气 + GWP20（84）→ 减排量约×3
+const Rg20 = calcCore(Object.assign({}, i, { gwp: 84 }));
+const okG20 = Math.abs(Rg20.erY - 10081.9) <= 3;
+if (!okG20) fail++;
+console.log(`${okG20 ? '✓' : '✗'} GWP₂₀=84 → 净减排 t/年 计算=${Rg20.erY.toFixed(2).padStart(10)}  期望≈ 10081.9  容差±3`);
+// 关闭「替代电网」→ 仅甲烷减排
+const Rng = calcCore(Object.assign({}, i, { countGrid: false }));
+const okNg = Math.abs(Rng.erY - 3212.16) <= 0.5 && Rng.gridAvoid === 0;
+if (!okNg) fail++;
+console.log(`${okNg ? '✓' : '✗'} 关闭替代电网 → 净减排 ${Rng.erY.toFixed(2)} t/年（=基准线 3212.16）`);
+// 关闭「碳收益计入经济评价」→ 回到不含碳口径
+const Rnc = calcCore(Object.assign({}, i, { includeCarbon: false }));
+const okNc = Math.abs(Rnc.netAnnual - R.netAnnualNoC) < 1e-6 && Math.abs(Rnc.revCarbon) < 1e-9;
+if (!okNc) fail++;
+console.log(`${okNc ? '✓' : '✗'} 碳收益不计入 → 年净收益 ${(Rnc.netAnnual/10000).toFixed(2)} 万元（=不含碳口径，回收期 12.06 年）`);
+// 碳价敏感性：碳价 0 → 碳收益 0 但减排量不变
+const Rc0 = calcCore(Object.assign({}, i, { pCarbon: 0 }));
+const okC0 = Rc0.carbonRevY === 0 && Math.abs(Rc0.erY - R.erY) < 1e-9;
+if (!okC0) fail++;
+console.log(`${okC0 ? '✓' : '✗'} 碳价=0 → 减排量不变 ${Rc0.erY.toFixed(1)} t/年，碳收益 0`);
 
 console.log(`\n${fail === 0 ? '✅ 全部通过' : '❌ 失败 ' + fail + ' 项'}`);
 process.exit(fail === 0 ? 0 : 1);
