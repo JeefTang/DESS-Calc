@@ -113,6 +113,28 @@ const okUnit = Math.abs(R.unitCost - 0.64) <= 0.02; if (!okUnit) fail++;
 console.log(`${okUnit ? '✓' : '✗'} 单位电成本 = ${R.unitCost.toFixed(4)} 元/kWh (期望≈0.64 = 气价3.2÷气电比5；气 ${(R.costCH4/10000).toFixed(2)}万 + 水 ${(R.costWater/10000).toFixed(4)}万 / ${(R.yMWh*1000).toFixed(0)} kWh)`);
 console.log(`  理论反推甲烷 = ${R.VCH4Theory.toFixed(2)} Nm³/h`);
 
+// 进堆氢浓度（参考）：变换气干基组成（化学计量·全转化假设）
+const h2 = [
+  ['化学计量氢 Nm³/h', R.cH2,       64.00,  0.05],
+  ['氢质量 kg/h',      R.mH2Stoich,  5.75,  0.02],
+  ['纯化前干基 H₂ %',  R.yH2raw*100, 56.09, 0.05],
+  ['脱氮后干基 H₂ %',  R.yH2deN*100, 76.19, 0.05],
+];
+console.log('\n=== 进堆氢浓度（参考 · 空气 O₂/C=0.40 · 全转化假设）===');
+for (const [name, got, want, tol] of h2) {
+  const ok = Math.abs(got - want) <= tol;
+  if (!ok) fail++;
+  console.log(`${ok ? '✓' : '✗'} ${name.padEnd(20)} 计算=${got.toFixed(4).padStart(10)}  期望≈${String(want).padStart(7)}  容差±${tol}`);
+}
+const okSpec = R.yH2deN >= 0.70;
+if (!okSpec) fail++;
+console.log(`${okSpec ? '✓' : '✗'} 脱氮后氢浓度 ${(R.yH2deN*100).toFixed(2)}% ≥ 协议阈值 70%`);
+// 纯氧：无 N₂ 稀释 → 氢浓度提高
+const Ro2 = calcCore(Object.assign({}, i, { oxid: 'o2' }));
+const okO2 = Math.abs(Ro2.yH2raw - Ro2.yH2deN) < 1e-9 && Ro2.cN2 === 0 && Ro2.yH2raw > R.yH2raw;
+if (!okO2) fail++;
+console.log(`${okO2 ? '✓' : '✗'} 纯氧（无 N₂）：纯化前即为脱氮后浓度 ${(Ro2.yH2raw*100).toFixed(2)}% > 配空气 ${(R.yH2raw*100).toFixed(2)}%`);
+
 // 反算抽查
 const rv = core.calcReverse(Object.assign({}, i, { rmode: 'V', tgtV: 5 }));
 console.log(`  反算 5 m³/h 热水 → 需 Q=${rv.reqQ.toFixed(1)} kW, 600℃蒸汽 ${rv.reqSteam.toFixed(3)} t/h`);
