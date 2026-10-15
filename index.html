@@ -136,6 +136,12 @@
         <div class="row"><label>产水回收率<small>冷凝回收，70%~90%</small></label><div><input id="recov" type="number" value="80" step="1" min="0" max="100"></div></div>
         <div class="row"><label>水碳比 S/C<small>重整配气加汽比（蒸汽量按此算）</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
         <div class="radio-line">
+          <label><input type="radio" name="oxid" value="air" checked> 氧化剂：空气（21% O₂）</label>
+          <label><input type="radio" name="oxid" value="o2"> 纯氧</label>
+          <label><input type="radio" name="oxid" value="none"> 不配</label>
+        </div>
+        <div class="row" id="rowOC"><label>氧碳比 O₂/C<small>mol/mol｜⚠️ 热中性估算，待工艺包确认</small></label><div><input id="oc" type="number" value="0.40" step="0.01" min="0" max="1"></div></div>
+        <div class="radio-line">
           <label><input type="radio" name="heatMode" value="auto" checked> 重整供热：自热耦合（反应器自热 · 不外供蒸汽）</label>
           <label><input type="radio" name="heatMode" value="ext"> 外供蒸汽（外部锅炉供 S/C 蒸汽）</label>
         </div>
@@ -208,6 +214,10 @@
 
     <h2 class="sec">核心指标</h2>
     <div class="grid" id="gridCore"></div>
+
+    <h2 class="sec">重整配气（自热耦合 · 催化部分氧化）</h2>
+    <div class="grid" id="gridFeed"></div>
+    <div class="note" id="feedNote"></div>
 
     <h2 class="sec">水 账</h2>
     <div class="grid" id="gridWater"></div>
@@ -287,6 +297,13 @@ function calcCore(i){
   var steamSelf = steamNeed * steamSelfFrac;       // kg/h 自产（反应过程产生/系统回收）
   var steamExt  = steamNeed - steamSelf;           // kg/h 需外部供给的蒸汽
 
+  // ④b 氧化剂配入（自热耦合：催化部分氧化供热，非燃烧器）
+  var oc    = (i.oxid === 'none') ? 0 : (i.oc || 0);   // O₂/C mol/mol
+  var vO2   = VCH4 * oc;                               // Nm³/h 纯氧需求
+  var vAir  = (i.oxid === 'air') ? vO2 / 0.21 : 0;     // Nm³/h 空气量（21% O₂）
+  var vN2   = vAir * 0.79;                             // Nm³/h 空气带入 N₂
+  var vOxid = (i.oxid === 'o2') ? vO2 : vAir;          // Nm³/h 实际配入的氧化剂流量
+
   // ⑤ 余热 -> 热水
   var Qavail;
   if (i.qmode === 'S') {
@@ -360,6 +377,7 @@ function calcCore(i){
     mH2:mH2, VH2:VH2, VCH4:VCH4, mCH4:mCH4, etaAll:etaAll, VCH4Theory:VCH4Theory,
     mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
     steamSelf:steamSelf, steamExt:steamExt,
+    oc:oc, vO2:vO2, vAir:vAir, vN2:vN2, vOxid:vOxid,
     Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
     mCO2:mCO2, yCO2:yCO2,
     yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
@@ -398,7 +416,7 @@ var f = function(v, n){ if(!isFinite(v)) return '—';
 var DEFAULTS = {
   P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
   Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
-  steamSelf:100,
+  steamSelf:100, oc:0.40,
   pCH4:3.20, pElec:0.70, pWater:4.00, pHeat:60,
   inv:172.57, opexRate:2, life:10, disc:6, subsidy:0
 };
@@ -410,6 +428,8 @@ function readInputs(){
     recov:pct('recov',0.8), sc:num('sc',5),
     heatMode:(document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto',
     steamSelf:pct('steamSelf',1),
+    oxid:(document.querySelector('input[name=oxid]:checked')||{}).value || 'air',
+    oc:num('oc',0.40),
     qmode:document.querySelector('input[name=qmode]:checked').value,
     Q:num('Q',100), steamT:num('steamT',1), steamTemp:num('steamTemp',600),
     Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
@@ -452,18 +472,34 @@ function render(){
     kpi('理论反推甲烷耗', f(R.VCH4Theory,2), 'Nm³/h',
         'm_H2 × 2 ÷ 0.717 ÷ 0.80(PSA) ÷ 0.90(重整)');
 
-  /* --- 水账 --- */
-  $('gridWater').innerHTML =
-    kpi('理论产水', f(R.mH2OTheory,2), 'kg/h', 'm_H2O = m_H2 × 9', 'hi') +
-    kpi('实际回收产水', f(R.mH2ORecov,1), 'L/h', '理论产水 × 回收率 '+(i.recov*100).toFixed(0)+'%') +
-    kpi('产水率', f(R.waterRate,2), 'kg/kWh', '理论产水 ÷ 电功率 P') +
-    kpi('重整配气·蒸汽需求', f(R.steamNeed,2), 'kg/h',
-        '(V_CH4 ÷ 22.414) × S/C × 18（S/C='+f(i.sc,1)+'）') +
+  /* --- 重整配气 --- */
+  var oxName = i.oxid==='air' ? '空气（21% O₂）' : (i.oxid==='o2' ? '纯氧' : '不配（纯蒸汽重整）');
+  $('gridFeed').innerHTML =
+    kpi('重整蒸汽需求', f(R.steamNeed,2), 'kg/h', '(V_CH4 ÷ 22.414) × S/C × 18（S/C='+f(i.sc,1)+'）') +
     kpi('其中·自产蒸汽', f(R.steamSelf,2), 'kg/h',
         i.heatMode==='ext' ? '外供蒸汽模式：不自产' : ('自热耦合：反应过程自产 '+f((i.steamSelf||0)*100,0)+'%'),
         i.heatMode==='auto' ? 'hi' : '') +
     kpi('需外供蒸汽', f(R.steamExt,2), 'kg/h',
         '蒸汽需求 − 自产', R.steamExt > 0 ? 'warn' : '') +
+    kpi('氧化剂', oxName, '', '自热耦合：催化部分氧化供热') +
+    kpi('O₂ 配入', f(R.vO2,2), 'Nm³/h',
+        'V_CH4 × O₂/C（O₂/C='+f(i.oc,2)+'）', i.oxid!=='none' ? 'hi' : '') +
+    kpi(i.oxid==='o2' ? '氧化剂流量' : '空气配入', f(R.vOxid,2), 'Nm³/h',
+        i.oxid==='air' ? 'O₂ ÷ 0.21' : (i.oxid==='o2' ? '纯氧直配' : '不配氧化剂')) +
+    (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '');
+  $('feedNote').innerHTML =
+    '<b>自热耦合（催化部分氧化）：</b>反应器<b>无燃烧器</b>，热量由催化床内的部分氧化反应提供，与蒸汽重整耦合，故<b>不需外供蒸汽</b>；'+
+    '重整用汽由反应过程自产。配气 = 沼气(CH₄) + '+ (i.oxid==='none' ? '（不配氧化剂）' : oxName) +' + 自产蒸汽。'+
+    (i.oxid==='air'
+      ? '<br>⚠️ 配空气会带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/PSA，<b>稀释富氢气</b>（产品氢 ≥70% 口径需核算）。'
+      : '') +
+    '<br>⚠️ O₂/C 默认 '+f(i.oc,2)+' 为<b>热中性估算值</b>（≈0.35~0.45，随 S/C、反应温度变化），<b>请以工艺包/实测确认</b>。';
+
+  /* --- 水账 --- */
+  $('gridWater').innerHTML =
+    kpi('理论产水', f(R.mH2OTheory,2), 'kg/h', 'm_H2O = m_H2 × 9', 'hi') +
+    kpi('实际回收产水', f(R.mH2ORecov,1), 'L/h', '理论产水 × 回收率 '+(i.recov*100).toFixed(0)+'%') +
+    kpi('产水率', f(R.waterRate,2), 'kg/kWh', '理论产水 ÷ 电功率 P') +
     kpi('净补水', f(R.netMakeup,2), 'kg/h', '外供蒸汽 − 回收产水（下限 0）') ;
   if (i.heatMode === 'auto') {
     $('waterNote').innerHTML =
@@ -581,6 +617,9 @@ function render(){
   c += trow('氢耗体积校核', f(R.VH2/R.mH2,4)+' Nm³/kg', '理论 1/0.0899 = 11.1235');
   c += trow('重整配气·自产 / 外供蒸汽', f(R.steamSelf,2)+' / '+f(R.steamExt,2)+' kg/h',
       i.heatMode==='auto' ? '自热耦合：不外通蒸汽' : '外供蒸汽模式');
+  c += trow('氧化剂配入（O₂/C='+f(i.oc,2)+'）', f(R.vO2,2)+' Nm³/h O₂' +
+      (i.oxid==='air' ? '（空气 '+f(R.vAir,2)+'，含 N₂ '+f(R.vN2,2)+'）' : ''),
+      i.oxid==='none' ? '不配氧化剂' : '催化部分氧化供热');
   c += trow('水账校核（外供蒸汽 − 回收产水）', f(R.steamExt-R.mH2ORecov,2)+' kg/h', '净补水下限 0');
   c += trow('热水热平衡校核', f(R.heatGJ,4)+' GJ/h', '@ η_hex='+f(i.etaHex,2)+' / ΔT='+f(i.Tout-i.Tin,0)+' K');
   c += '</tbody>';
@@ -611,7 +650,7 @@ function render(){
 
   /* --- 脚注 --- */
   $('foot').innerHTML =
-    '工艺：催化重整制氢（无燃烧器）· 反应器自热耦合 · 重整用汽由反应过程自产、不外供蒸汽。<br>'+
+    '工艺：催化重整制氢（无燃烧器·催化部分氧化自热）· 反应器自热耦合 · 重整用汽由反应过程自产、不外供蒸汽。<br>'+
     '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）。<br>'+
     '氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'+
     '<b>免责说明：</b>本工具为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'+
@@ -635,6 +674,9 @@ function buildText(){
   o.push('重整配气：蒸汽需求 '+f(R.steamNeed,2)+' kg/h（'+ (i.heatMode==='auto'
         ? '自热耦合 · 自产 '+f(R.steamSelf,2)+' / 外供 '+f(R.steamExt,2)+' kg/h'
         : '外供蒸汽（外部锅炉）') +'）；净补水 '+f(R.netMakeup,2)+' kg/h');
+  o.push('氧化剂：'+ (i.oxid==='air' ? '空气' : (i.oxid==='o2' ? '纯氧' : '不配')) +
+        '，O₂/C='+f(i.oc,2)+' → O₂ '+f(R.vO2,2)+' Nm³/h' +
+        (i.oxid==='air' ? '；空气 '+f(R.vAir,2)+' Nm³/h（含 N₂ '+f(R.vN2,2)+'）' : ''));
   o.push('— 余热 —');
   o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
   o.push('— 碳排放 —');
@@ -673,6 +715,7 @@ $('btnReset').onclick = function(){
   document.querySelector('input[name=qmode][value=Q]').checked = true;
   document.querySelector('input[name=rmode][value=off]').checked = true;
   document.querySelector('input[name=heatMode][value=auto]').checked = true;
+  document.querySelector('input[name=oxid][value=air]').checked = true;
   toggleRows(); render();
 };
 
@@ -686,6 +729,8 @@ function toggleRows(){
   $('rowRV').style.display = rm==='V' ? '' : 'none';
   var hm = (document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto';
   $('rowSelfSteam').style.display = hm==='auto' ? '' : 'none';
+  var ox = (document.querySelector('input[name=oxid]:checked')||{}).value || 'air';
+  $('rowOC').style.display = ox==='none' ? 'none' : '';
 }
 
 /* 输入变化即时重算 */
@@ -693,7 +738,7 @@ document.addEventListener('input', function(ev){
   if (ev.target.closest && ev.target.closest('.col-in')) render();
 });
 document.addEventListener('change', function(ev){
-  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode'){ toggleRows(); render(); }
+  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode' || ev.target.name === 'oxid'){ toggleRows(); render(); }
 });
 
 toggleRows();
