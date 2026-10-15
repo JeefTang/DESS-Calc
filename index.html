@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>甲烷重整制氢 · 燃料电池热电联供 测算工具</title>
+<meta name="description" content="纯前端离线测算工具：输入机组参数，自动算出氢耗、甲烷耗、产水量、余热热水量、碳排放与单位成本。">
+<style>
+  :root{
+    --bg:#f4f7fa; --card:#ffffff; --ink:#1b2733; --muted:#6b7c8f; --line:#e2e9f0;
+    --brand:#0b7f6e; --brand2:#0d6efd; --warn:#c0392b; --warnbg:#fdecea; --ok:#0b7f6e;
+    --chip:#eef6f4; --shadow:0 1px 2px rgba(16,36,58,.06),0 6px 20px rgba(16,36,58,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+    padding:18px 14px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  header.top{margin:0 0 16px}
+  h1{font-size:21px;margin:0 0 6px;letter-spacing:.2px}
+  h1 .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:5px;letter-spacing:0}
+  .layout{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .col-in{padding:6px 4px 10px}
+  .col-out{padding:14px}
+
+  details.grp{border-bottom:1px solid var(--line);padding:0 12px}
+  details.grp:last-child{border-bottom:0}
+  details.grp>summary{
+    list-style:none;cursor:pointer;padding:13px 2px;font-weight:600;font-size:14.5px;
+    display:flex;align-items:center;gap:8px;user-select:none;
+  }
+  details.grp>summary::-webkit-details-marker{display:none}
+  details.grp>summary::before{
+    content:"▸";color:var(--brand);font-size:12px;transition:transform .15s;display:inline-block;
+  }
+  details.grp[open]>summary::before{transform:rotate(90deg)}
+  .badge{margin-left:auto;font-weight:500;font-size:11px;color:var(--brand);background:var(--chip);
+    border-radius:20px;padding:2px 9px}
+  .fields{padding:2px 0 14px;display:grid;gap:11px}
+  .row{display:grid;grid-template-columns:1fr 108px;gap:10px;align-items:center}
+  .row label{font-size:13.5px;color:#33414f}
+  .row label small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35;margin-top:2px}
+  .row .u{color:var(--muted);font-weight:400}
+  input[type=number],select{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfdff;
+    font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;
+  }
+  input[type=radio],input[type=checkbox]{accent-color:var(--brand)}
+  input:focus,select:focus{outline:2px solid rgba(11,127,110,.25);border-color:var(--brand)}
+  .radio-line{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:#33414f}
+  .radio-line label{display:flex;align-items:center;gap:6px;cursor:pointer}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:12px 12px 14px;border-top:1px solid var(--line)}
+  button{
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;
+    padding:9px 14px;font-size:13.5px;cursor:pointer;font-family:inherit;
+  }
+  button:hover{border-color:var(--brand);color:var(--brand)}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button.primary:hover{filter:brightness(1.06);color:#fff}
+
+  .alert{display:none;background:var(--warnbg);border:1px solid #f5c6c0;color:#8e2b21;
+    border-radius:12px;padding:11px 13px;font-size:12.8px;line-height:1.55;margin:0 0 12px}
+  .alert.show{display:block}
+  .alert b{color:var(--warn)}
+  .note{background:#f2f8f6;border:1px solid #d6ebe5;color:#20625a;border-radius:12px;
+    padding:10px 12px;font-size:12.5px;line-height:1.55;margin:12px 0 0}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fcfdff}
+  .kpi .t{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .kpi .v{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums;margin:6px 0 2px;letter-spacing:-.2px}
+  .kpi .v .u{font-size:12.5px;font-weight:500;color:var(--muted);margin-left:4px}
+  .kpi .f{font-size:11.5px;color:#93a3b4;line-height:1.4}
+  .kpi.hi{border-color:#cfe9e2;background:#f7fcfb}
+  .kpi.warn{border-color:#f5c6c0;background:var(--warnbg)}
+  .kpi.warn .v{color:var(--warn)}
+  h2.sec{font-size:13px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    margin:18px 0 10px;font-weight:650;border-top:1px dashed var(--line);padding-top:14px}
+  h2.sec:first-child{border-top:0;margin-top:0;padding-top:0}
+  table.mini{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  table.mini th,table.mini td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+  table.mini th:first-child,table.mini td:first-child{text-align:left;color:#33414f}
+  table.mini thead th{color:var(--muted);font-weight:600;font-size:12px}
+  .mono{font-variant-numeric:tabular-nums}
+  footer{margin-top:18px;font-size:11.5px;color:#8b99a9;line-height:1.6}
+  #copied{font-size:12px;color:var(--brand);display:none;margin-left:4px}
+  @media print{
+    body{background:#fff;padding:0}
+    .col-in,.btnrow,.no-print{display:none!important}
+    .layout{grid-template-columns:1fr}
+    .card{border:0;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>甲烷重整制氢 · 燃料电池热电联供 测算工具
+    <span class="sub">输入机组参数 → 自动计算氢耗 / 甲烷耗 / 产水量 / 余热热水 / 碳排放 / 单位成本 · 纯前端离线可用</span>
+  </h1>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 输入区 ============ -->
+  <section class="card col-in no-print">
+    <details class="grp" open>
+      <summary>A 机组参数<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>额定电功率 P<small>整机净输出电功率</small></label><div><input id="P" type="number" value="100" step="1" min="0.1"></div></div>
+        <div class="row"><label>发电效率 η<small>按氢 LHV 计，40%~60%</small></label><div><input id="eta" type="number" value="50" step="0.1" min="1" max="100"><span class="u"></span></div></div>
+        <div class="row"><label>年运行小时 h</label><div><input id="h" type="number" value="8000" step="100" min="1"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>B 燃料（甲烷）<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>甲烷电/气比 r<small>kW / Nm³ · 经验实测值，待复核 ⚠️</small></label><div><input id="r" type="number" value="5" step="0.1" min="0.1"></div></div>
+        <div class="row"><label>PSA 氢回收率<small>仅用于理论反推行</small></label><div><input id="psa" type="number" value="80" step="1" min="1" max="100"></div></div>
+        <div class="row"><label>重整转化率<small>仅用于理论反推行</small></label><div><input id="refconv" type="number" value="90" step="1" min="1" max="100"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>C 产水</summary>
+      <div class="fields">
+        <div class="row"><label>产水回收率<small>冷凝回收，70%~90%</small></label><div><input id="recov" type="number" value="80" step="1" min="0" max="100"></div></div>
+        <div class="row"><label>水碳比 S/C<small>参考值，用于算净水账</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>D 余热</summary>
+      <div class="fields">
+        <div class="radio-line">
+          <label><input type="radio" name="qmode" value="Q" checked> ① 直接给定可用余热功率 Q</label>
+          <label><input type="radio" name="qmode" value="S"> ② 给定蒸汽流量/温度</label>
+        </div>
+        <div class="row" id="rowQ"><label>可用余热功率 Q<small>指重整/电堆排出的可回收热功率</small></label><div><input id="Q" type="number" value="100" step="1" min="0"></div></div>
+        <div class="row" id="rowS" style="display:none"><label>蒸汽流量<small>600℃ 蒸汽，冷至出水温度的总放热</small></label><div><input id="steamT" type="number" value="1" step="0.1" min="0"></div></div>
+        <div class="row" id="rowSteamT" style="display:none"><label>蒸汽温度<small>默认 600℃</small></label><div><input id="steamTemp" type="number" value="600" step="10" min="100"></div></div>
+        <div class="row"><label>进水温度 T_in<small>冬季可调低</small></label><div><input id="Tin" type="number" value="15" step="1"></div></div>
+        <div class="row"><label>出水温度 T_out</label><div><input id="Tout" type="number" value="50" step="1"></div></div>
+        <div class="row"><label>换热效率 η_hex<small>0.70~0.85</small></label><div><input id="etaHex" type="number" value="75" step="1" min="1" max="100"></div></div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>E 价格（用于经济性）<span class="badge">可改</span></summary>
+      <div class="fields">
+        <div class="row"><label>甲烷价<small>元 / Nm³</small></label><div><input id="pCH4" type="number" value="3.20" step="0.01" min="0"></div></div>
+        <div class="row"><label>电价<small>元 / kWh</small></label><div><input id="pElec" type="number" value="0.64" step="0.01" min="0"></div></div>
+        <div class="row"><label>水价<small>元 / m³（按净补水计）</small></label><div><input id="pWater" type="number" value="4.00" step="0.01" min="0"></div></div>
+        <div class="row"><label>热价<small>元 / GJ（用于热水收益折算）</small></label><div><input id="pHeat" type="number" value="60" step="1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>F 反算模式<span class="badge">可选</span></summary>
+      <div class="fields">
+        <div class="radio-line">
+          <label><input type="radio" name="rmode" value="off" checked> 关闭（正算）</label>
+          <label><input type="radio" name="rmode" value="P"> 按目标电功率反推</label>
+          <label><input type="radio" name="rmode" value="V"> 按目标热水产量反推</label>
+        </div>
+        <div class="row" id="rowRP" style="display:none"><label>目标电功率<small>kW</small></label><div><input id="tgtP" type="number" value="200" step="1" min="0.1"></div></div>
+        <div class="row" id="rowRV" style="display:none"><label>目标热水产量<small>m³/h（50℃热水）</small></label><div><input id="tgtV" type="number" value="5" step="0.1" min="0.01"></div></div>
+      </div>
+    </details>
+
+    <div class="btnrow">
+      <button class="primary" id="btnCalc">重新计算</button>
+      <button id="btnCopy">复制结果文本</button>
+      <button id="btnPrint">打印 / 存 PDF</button>
+      <button id="btnReset">恢复默认</button>
+      <span id="copied">已复制 ✓</span>
+    </div>
+  </section>
+
+  <!-- ============ 输出区 ============ -->
+  <section class="card col-out" id="out">
+    <div class="alert" id="alertAll"></div>
+
+    <h2 class="sec">核心指标</h2>
+    <div class="grid" id="gridCore"></div>
+
+    <h2 class="sec">水 账</h2>
+    <div class="grid" id="gridWater"></div>
+    <div class="note" id="waterNote"></div>
+
+    <h2 class="sec">余热 / 热水</h2>
+    <div class="grid" id="gridHeat"></div>
+
+    <h2 class="sec">碳排放</h2>
+    <div class="grid" id="gridCO2"></div>
+
+    <h2 class="sec">经济性（按年运行小时）</h2>
+    <table class="mini" id="tblEcon"></table>
+
+    <h2 class="sec">校验行（与输入口径对照）</h2>
+    <table class="mini" id="tblCheck"></table>
+
+    <div id="revSec" style="display:none">
+      <h2 class="sec">反算结果</h2>
+      <table class="mini" id="tblRev"></table>
+    </div>
+
+    <footer class="no-print" id="foot"></footer>
+  </section>
+
+</div>
+</div>
+
+<script>
+/* ===================== 常量（口径锁定，勿改） ===================== */
+/* ==CALC-CORE-START== */
+var CONST = {
+  LHV_H2: 33.3,        // kWh/kg  氢低位热值
+  RHO_H2: 0.0899,      // kg/Nm³  氢标况密度
+  RHO_CH4: 0.717,      // kg/Nm³  甲烷标况密度
+  LHV_CH4: 9.94,       // kWh/Nm³ 甲烷低位热值 (=35.8 MJ/Nm³)
+  CW: 4.18,            // kJ/(kg·K) 水比热
+  H2O_PER_H2: 9,       // 1 kg H2 -> 9 kg H2O
+  CO2_PER_CH4: 1.964,  // kg CO2 / Nm³ CH4
+  MOLAR_VOL: 22.414,   // Nm³/kmol
+  STEAM_ENTH: 3516,    // kJ/kg  600℃蒸汽冷至50℃总放热(显热1050+潜热2257+显热209)
+  _PSA_DEFAULT: 0.80,
+  _REF_DEFAULT: 0.90
+};
+
+function calcCore(i){
+  var C = CONST;
+  var P = i.P, eta = i.eta, r = i.r, recov = i.recov, sc = i.sc;
+  var Tin = i.Tin, Tout = i.Tout, etaHex = i.etaHex;
+
+  // ① 氢耗
+  var mH2 = P / (eta * C.LHV_H2);                 // kg/h
+  var VH2 = mH2 / C.RHO_H2;                       // Nm³/h
+
+  // ② 甲烷耗
+  var VCH4 = P / r;                               // Nm³/h
+  var mCH4 = VCH4 * C.RHO_CH4;                    // kg/h
+  var etaAll = P / (VCH4 * C.LHV_CH4);            // 全链路效率
+  var VCH4Theory = mH2 * 2 / C.RHO_CH4 / i.psa / i.refconv;   // 理论反推 Nm³/h
+
+  // ③ 产水
+  var mH2OTheory = mH2 * C.H2O_PER_H2;            // kg/h
+  var mH2ORecov  = mH2OTheory * recov;            // L/h
+  var waterRate  = mH2OTheory / P;                // kg/kWh
+
+  // ④ 重整配汽
+  var steamNeed = (VCH4 / C.MOLAR_VOL) * sc * 18; // kg/h
+
+  // ⑤ 余热 -> 热水
+  var Qavail;
+  if (i.qmode === 'S') {
+    Qavail = i.steamT * 1000 * C.STEAM_ENTH / 3600;   // kW
+  } else {
+    Qavail = i.Q;
+  }
+  var Quse = Qavail * etaHex;                          // kW
+  var dT = (Tout - Tin);
+  var VhotTheory = dT > 0 ? Qavail * 3600 / (C.CW * dT) / 1000 : 0;  // m³/h
+  var Vhot = dT > 0 ? Quse * 3600 / (C.CW * dT) / 1000 : 0;          // m³/h
+
+  // ⑥ CO2
+  var mCO2 = VCH4 * C.CO2_PER_CH4;                     // kg/h
+  var yCO2 = mCO2 * i.h / 1000;                        // t/年
+
+  // ⑦ 经济性
+  var yMWh = P * i.h / 1000;
+  var yCH4 = VCH4 * i.h;
+  var costCH4 = yCH4 * i.pCH4;
+  var netMakeup = Math.max(0, steamNeed - mH2ORecov);   // kg/h 净补水
+  var yWater = netMakeup * i.h / 1000;                  // m³/年
+  var costWater = yWater * i.pWater;
+  var yHot = Vhot * i.h;                                // m³/年
+  var heatGJ = Vhot * C.CW * dT / 1000;                 // GJ/h
+  var yHeatGJ = heatGJ * i.h;
+  var revHeat = yHeatGJ * i.pHeat;
+  // 单位电成本：元 ÷ kWh（yMWh 是 MWh，需 ×1000 换成 kWh）
+  var unitCost = yMWh > 0 ? (costCH4 + costWater) / (yMWh * 1000) : 0;
+  var unitCostNetHeat = yMWh > 0 ? (costCH4 + costWater - revHeat) / (yMWh * 1000) : 0;
+
+  return {
+    mH2:mH2, VH2:VH2, VCH4:VCH4, mCH4:mCH4, etaAll:etaAll, VCH4Theory:VCH4Theory,
+    mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
+    Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
+    mCO2:mCO2, yCO2:yCO2,
+    yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
+    costWater:costWater, yHot:yHot, heatGJ:heatGJ, yHeatGJ:yHeatGJ, revHeat:revHeat,
+    unitCost:unitCost, unitCostNetHeat:unitCostNetHeat
+  };
+}
+
+/* 反算：目标电功率 -> 直接缩放；目标热水产量 -> 反推所需余热功率与蒸汽量 */
+function calcReverse(i){
+  var C = CONST, out = {};
+  var dT = i.Tout - i.Tin;
+  if (i.rmode === 'P') {
+    out.tgtP = i.tgtP;
+    out.reqQ = null;
+  } else if (i.rmode === 'V') {
+    out.tgtV = i.tgtV;
+    out.reqQ = dT > 0 ? i.tgtV * 1000 * C.CW * dT / 3600 / i.etaHex : 0;  // kW（含换热效率）
+    out.reqSteam = out.reqQ * 3600 / C.STEAM_ENTH / 1000;                  // t/h（600℃蒸汽）
+  }
+  return out;
+}
+/* ==CALC-CORE-END== */
+
+/* ===================== 页面逻辑 ===================== */
+var $ = function(id){ return document.getElementById(id); };
+var num = function(id, d){ var v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+var pct = function(id, d){ return num(id, d*100)/100; };
+var f = function(v, n){ if(!isFinite(v)) return '—';
+  return v.toLocaleString('zh-CN', {minimumFractionDigits:n, maximumFractionDigits:n}); };
+
+var DEFAULTS = {
+  P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
+  Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
+  pCH4:3.20, pElec:0.64, pWater:4.00, pHeat:60
+};
+
+function readInputs(){
+  return {
+    P:num('P',100), eta:pct('eta',0.5), h:num('h',8000), r:num('r',5),
+    psa:pct('psa',0.8), refconv:pct('refconv',0.9),
+    recov:pct('recov',0.8), sc:num('sc',5),
+    qmode:document.querySelector('input[name=qmode]:checked').value,
+    Q:num('Q',100), steamT:num('steamT',1), steamTemp:num('steamTemp',600),
+    Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
+    pCH4:num('pCH4',3.2), pElec:num('pElec',0.64), pWater:num('pWater',4),
+    pHeat:num('pHeat',60),
+    rmode:document.querySelector('input[name=rmode]:checked').value,
+    tgtP:num('tgtP',200), tgtV:num('tgtV',5)
+  };
+}
+
+function kpi(t, v, u, formula, cls){
+  return '<div class="kpi '+(cls||'')+'"><div class="t">'+t+'</div><div class="v">'+v+
+         (u?'<span class="u">'+u+'</span>':'')+'</div><div class="f">'+formula+'</div></div>';
+}
+
+function render(){
+  var i = readInputs();
+  var R = calcCore(i);
+
+  /* --- 警示：全链路效率 --- */
+  var a = $('alertAll');
+  if (R.etaAll > 0.5) {
+    a.className = 'alert show';
+    a.innerHTML = '<b>⚠ 全链路效率 '+(R.etaAll*100).toFixed(1)+'% &gt; 50%</b>：该气电比偏低（乐观）。'+
+      '请确认是否已扣除重整自用甲烷、PSA 尾气是否回烧。';
+  } else {
+    a.className = 'alert';
+  }
+
+  /* --- 核心指标 --- */
+  $('gridCore').innerHTML =
+    kpi('氢耗', f(R.mH2,2), 'kg/h', 'm_H2 = P ÷ (η × 33.3)', 'hi') +
+    kpi('氢耗', f(R.VH2,1), 'Nm³/h', 'V_H2 = m_H2 ÷ 0.0899') +
+    kpi('甲烷耗', f(R.VCH4,2), 'Nm³/h', 'V_CH4 = P ÷ r', 'hi') +
+    kpi('甲烷耗', f(R.mCH4,2), 'kg/h', 'm_CH4 = V_CH4 × 0.717') +
+    kpi('全链路效率', (R.etaAll*100).toFixed(1), '%', 'η_all = P ÷ (V_CH4 × 9.94)'+
+        (R.etaAll>0.5?' <b style="color:#c0392b">（&gt;50%，见上方警示）</b>':''), R.etaAll>0.5?'warn':'') +
+    kpi('理论反推甲烷耗', f(R.VCH4Theory,2), 'Nm³/h',
+        'm_H2 × 2 ÷ 0.717 ÷ 0.80(PSA) ÷ 0.90(重整)');
+
+  /* --- 水账 --- */
+  $('gridWater').innerHTML =
+    kpi('理论产水', f(R.mH2OTheory,2), 'kg/h', 'm_H2O = m_H2 × 9', 'hi') +
+    kpi('实际回收产水', f(R.mH2ORecov,1), 'L/h', '理论产水 × 回收率 '+(i.recov*100).toFixed(0)+'%') +
+    kpi('产水率', f(R.waterRate,2), 'kg/kWh', '理论产水 ÷ 电功率 P') +
+    kpi('重整配汽需求', f(R.steamNeed,2), 'kg/h',
+        '(V_CH4 ÷ 22.414) × S/C × 18') +
+    kpi('净补水', f(R.netMakeup,2), 'kg/h', '配汽需求 − 回收产水（下限 0）') ;
+  $('waterNote').innerHTML =
+    '<b>注意：系统整体是净耗水的。</b>重整配汽量（S/C='+f(i.sc,1)+' → '+f(R.steamNeed,2)+' kg/h）'+
+    '通常大于燃料电池产水量（'+f(R.mH2ORecov,2)+' L/h），水账应按「补充水」看，<b>不要</b>按「产水外供」讲。';
+
+  /* --- 余热 --- */
+  $('gridHeat').innerHTML =
+    kpi('可用余热功率', f(R.Qavail,1), 'kW', i.qmode==='S' ? '蒸汽 '+f(i.steamT,2)+' t/h × 3516 kJ/kg ÷ 3600' : '直接输入 Q') +
+    kpi('换热后有效热', f(R.Quse,1), 'kW', 'Q_用 = Q × η_hex '+f(i.etaHex,2)) +
+    kpi('热水产量（理论）', f(R.VhotTheory,2), 'm³/h', 'Q × 3600 ÷ (4.18 × ΔT) ÷ 1000') +
+    kpi('热水产量（实际）', f(R.Vhot,2), 'm³/h', 'Q_用 × 3600 ÷ (4.18 × ΔT) ÷ 1000', 'hi') +
+    kpi('可供热功率', f(R.Quse,3), 'kW', '按 50℃ 出水口径') ;
+
+  /* --- CO2 --- */
+  $('gridCO2').innerHTML =
+    kpi('CO₂ 排放', f(R.mCO2,2), 'kg/h', 'm_CO2 = V_CH4 × 1.964') +
+    kpi('CO₂ 年排放', f(R.yCO2,1), 't/年', 'm_CO2 × h ÷ 1000', 'hi') +
+    kpi('单位电 CO₂', f(R.mCO2/i.P,3), 'kg/kWh', 'm_CO2 ÷ P');
+
+  /* --- 经济性 --- */
+  var e = '';
+  function trow(k,v,note){ return '<tr><td>'+k+'</td><td class="mono">'+v+
+      (note?' <span style="color:#93a3b4">'+note+'</span>':'')+'</td></tr>'; }
+  e += '<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+  e += trow('年发电量', f(R.yMWh,1)+' MWh', '@ '+f(i.P,1)+' kW × '+f(i.h,0)+' h');
+  e += trow('年耗气量', f(R.yCH4,0)+' Nm³');
+  e += trow('年气费', f(R.costCH4/10000,2)+' 万元', '@ '+f(i.pCH4,2)+' 元/Nm³');
+  e += trow('年净补水量', f(R.yWater,1)+' m³');
+  e += trow('年水费', f(R.costWater/10000,3)+' 万元', '@ '+f(i.pWater,2)+' 元/m³');
+  e += trow('年热水产量', f(R.yHot,0)+' m³', '@ '+f(i.Tout,0)+'℃');
+  e += trow('年可供热量', f(R.yHeatGJ,0)+' GJ');
+  e += trow('热水收益（折算）', f(R.revHeat/10000,2)+' 万元', '@ '+f(i.pHeat,0)+' 元/GJ');
+  e += '<tr style="border-top:2px solid #e2e9f0"><td><b>单位电成本</b>（气+水，未抵扣热收益）</td><td class="mono"><b>'+f(R.unitCost,3)+' 元/kWh</b></td></tr>';
+  e += '<tr><td>单位电成本（抵扣热收益后）</td><td class="mono">'+f(R.unitCostNetHeat,3)+' 元/kWh</td></tr>';
+  e += '</tbody>';
+  $('tblEcon').innerHTML = e;
+
+  /* --- 校验行 --- */
+  var c = '<thead><tr><th>校验项</th><th>数值</th></tr></thead><tbody>';
+  c += trow('甲烷理论反推 vs 实际取值', f(R.VCH4Theory,2)+' / '+f(R.VCH4,2)+' Nm³/h',
+      (R.VCH4 > R.VCH4Theory ? '实际偏高（偏乐观）' : '实际偏低（偏保守）'));
+  c += trow('氢耗体积校核', f(R.VH2/R.mH2,4)+' Nm³/kg', '理论 1/0.0899 = 11.1235');
+  c += trow('水账校核（配汽 − 回收产水）', f(R.steamNeed-R.mH2ORecov,2)+' kg/h');
+  c += trow('热水热平衡校核', f(R.heatGJ,4)+' GJ/h', '@ η_hex='+f(i.etaHex,2)+' / ΔT='+f(i.Tout-i.Tin,0)+' K');
+  c += '</tbody>';
+  $('tblCheck').innerHTML = c;
+
+  /* --- 反算 --- */
+  var rv = calcReverse(i);
+  if (i.rmode !== 'off') {
+    $('revSec').style.display = '';
+    var t = '<thead><tr><th>目标</th><th>结果</th></tr></thead><tbody>';
+    if (i.rmode === 'P') {
+      var rp = calcCore(Object.assign({}, i, {P: i.tgtP}));
+      t += trow('目标电功率', f(i.tgtP,1)+' kW');
+      t += trow('需氢耗', f(rp.mH2,2)+' kg/h ≈ '+f(rp.VH2,1)+' Nm³/h');
+      t += trow('需甲烷耗', f(rp.VCH4,2)+' Nm³/h ≈ '+f(rp.mCH4,2)+' kg/h');
+      t += trow('对应余热规模（按同比例）', f(rp.Quse * (i.tgtP/i.P || 1),1)+' kW', '提示：余热按功率等比缩放');
+      t += trow('CO₂ 年排放', f(rp.yCO2,1)+' t/年');
+    } else {
+      t += trow('目标热水产量', f(i.tgtV,2)+' m³/h', '@ ΔT '+f(i.Tout-i.Tin,0)+' K');
+      t += trow('所需可用余热功率 Q', f(rv.reqQ,1)+' kW', '含 η_hex='+f(i.etaHex,2));
+      t += trow('对应 600℃ 蒸汽量', f(rv.reqSteam,3)+' t/h', '按 3516 kJ/kg');
+    }
+    t += '</tbody>';
+    $('tblRev').innerHTML = t;
+  } else {
+    $('revSec').style.display = 'none';
+  }
+
+  /* --- 脚注 --- */
+  $('foot').innerHTML =
+    '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）。<br>'+
+    '氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'+
+    '<b>免责说明：</b>本工具为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'+
+    '甲烷电/气比 r 默认 5 kW/Nm³ 为经验值，<b>尚待实测复核</b>。正式报价/合同请以实测数据与厂家样本为准。<br>'+
+    '本页为纯静态页面，离线可用，不采集任何数据。';
+  window.__LAST = { i:i, R:R };
+}
+
+/* --- 复制结果文本 --- */
+function buildText(){
+  var L = window.__LAST; if(!L) return '';
+  var i = L.i, R = L.R, o = [];
+  o.push('【甲烷重整制氢 · 燃料电池热电联供 测算结果】');
+  o.push('输入：P='+f(i.P,1)+'kW, η='+(i.eta*100).toFixed(1)+'%, h='+f(i.h,0)+'h, r='+f(i.r,2)+' kW/Nm³, 回收率='+(i.recov*100).toFixed(0)+'%');
+  o.push('— 核心 —');
+  o.push('氢耗：'+f(R.mH2,2)+' kg/h ≈ '+f(R.VH2,1)+' Nm³/h');
+  o.push('甲烷耗：'+f(R.VCH4,2)+' Nm³/h ≈ '+f(R.mCH4,2)+' kg/h');
+  o.push('全链路效率：'+(R.etaAll*100).toFixed(1)+'%'+(R.etaAll>0.5?' ⚠ 偏高（气电比偏乐观）':''));
+  o.push('— 水账（净耗水）—');
+  o.push('理论产水：'+f(R.mH2OTheory,2)+' kg/h；回收 '+f(R.mH2ORecov,2)+' L/h；产水率 '+f(R.waterRate,2)+' kg/kWh');
+  o.push('重整配汽：'+f(R.steamNeed,2)+' kg/h；净补水 '+f(R.netMakeup,2)+' kg/h');
+  o.push('— 余热 —');
+  o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
+  o.push('— 碳排放 —');
+  o.push('CO₂ '+f(R.mCO2,2)+' kg/h；年 '+f(R.yCO2,1)+' t（生物源碳应另计）');
+  o.push('— 经济性 —');
+  o.push('年发电 '+f(R.yMWh,1)+' MWh；年气费 '+f(R.costCH4/10000,2)+' 万元；年水费 '+f(R.costWater/10000,3)+' 万元');
+  o.push('单位电成本 '+f(R.unitCost,3)+' 元/kWh（未抵扣热收益）｜抵扣后 '+f(R.unitCostNetHeat,3)+' 元/kWh');
+  o.push('（工具：DESS-Calc · 估算参考，非报价依据）');
+  return o.join('\n');
+}
+$('btnCopy').onclick = function(){
+  var t = buildText();
+  var done = function(){ var el=$('copied'); el.style.display='inline';
+    setTimeout(function(){ el.style.display='none'; },1800); };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(t).then(done, function(){ fallback(t, done); });
+  } else { fallback(t, done); }
+};
+function fallback(t, done){
+  var ta = document.createElement('textarea');
+  ta.value = t; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch(e){ alert('复制失败，请手动选中以下文本：\n\n'+t); }
+  document.body.removeChild(ta);
+}
+$('btnPrint').onclick = function(){ window.print(); };
+$('btnCalc').onclick = render;
+$('btnReset').onclick = function(){
+  Object.keys(DEFAULTS).forEach(function(k){ if($(k)) $(k).value = DEFAULTS[k]; });
+  document.querySelector('input[name=qmode][value=Q]').checked = true;
+  document.querySelector('input[name=rmode][value=off]').checked = true;
+  toggleRows(); render();
+};
+
+function toggleRows(){
+  var qm = document.querySelector('input[name=qmode]:checked').value;
+  $('rowQ').style.display = qm==='Q' ? '' : 'none';
+  $('rowS').style.display = qm==='S' ? '' : 'none';
+  $('rowSteamT').style.display = qm==='S' ? '' : 'none';
+  var rm = document.querySelector('input[name=rmode]:checked').value;
+  $('rowRP').style.display = rm==='P' ? '' : 'none';
+  $('rowRV').style.display = rm==='V' ? '' : 'none';
+}
+
+/* 输入变化即时重算 */
+document.addEventListener('input', function(ev){
+  if (ev.target.closest && ev.target.closest('.col-in')) render();
+});
+document.addEventListener('change', function(ev){
+  if (ev.target.name === 'qmode' || ev.target.name === 'rmode'){ toggleRows(); render(); }
+});
+
+toggleRows();
+render();
+</script>
+</body>
+</html>
