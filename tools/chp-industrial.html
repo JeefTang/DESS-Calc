@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>甲烷重整制氢 · 燃料电池热电联供 测算工具</title>
+<meta name="description" content="纯前端离线测算工具：输入机组参数，自动算出氢耗、甲烷耗、产水量、余热热水量、碳排放与单位成本。">
+<style>
+  :root{
+    --bg:#f4f7fa; --card:#ffffff; --ink:#1b2733; --muted:#6b7c8f; --line:#e2e9f0;
+    --brand:#0b7f6e; --brand2:#0d6efd; --warn:#c0392b; --warnbg:#fdecea; --ok:#0b7f6e;
+    --chip:#eef6f4; --shadow:0 1px 2px rgba(16,36,58,.06),0 6px 20px rgba(16,36,58,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+    padding:18px 14px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  header.top{margin:0 0 16px}
+  h1{font-size:21px;margin:0 0 6px;letter-spacing:.2px}
+  h1 .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:5px;letter-spacing:0}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .nav a{font-size:12.5px;text-decoration:none;color:var(--brand);background:var(--chip);
+    border:1px solid #d6ebe5;border-radius:20px;padding:4px 12px}
+  .nav a.cur{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .layout{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .col-in{padding:6px 4px 10px}
+  .col-out{padding:14px}
+
+  details.grp{border-bottom:1px solid var(--line);padding:0 12px}
+  details.grp:last-child{border-bottom:0}
+  details.grp>summary{
+    list-style:none;cursor:pointer;padding:13px 2px;font-weight:600;font-size:14.5px;
+    display:flex;align-items:center;gap:8px;user-select:none;
+  }
+  details.grp>summary::-webkit-details-marker{display:none}
+  details.grp>summary::before{
+    content:"▸";color:var(--brand);font-size:12px;transition:transform .15s;display:inline-block;
+  }
+  details.grp[open]>summary::before{transform:rotate(90deg)}
+  .badge{margin-left:auto;font-weight:500;font-size:11px;color:var(--brand);background:var(--chip);
+    border-radius:20px;padding:2px 9px}
+  .fields{padding:2px 0 14px;display:grid;gap:11px}
+  .row{display:grid;grid-template-columns:1fr 108px;gap:10px;align-items:center}
+  .row label{font-size:13.5px;color:#33414f}
+  .row label small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35;margin-top:2px}
+  .row .u{color:var(--muted);font-weight:400}
+  input[type=number],select{
+    width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfdff;
+    font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;
+  }
+  input[type=radio],input[type=checkbox]{accent-color:var(--brand)}
+  input:focus,select:focus{outline:2px solid rgba(11,127,110,.25);border-color:var(--brand)}
+  .radio-line{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:#33414f}
+  .radio-line label{display:flex;align-items:center;gap:6px;cursor:pointer}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:12px 12px 14px;border-top:1px solid var(--line)}
+  button{
+    border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;
+    padding:9px 14px;font-size:13.5px;cursor:pointer;font-family:inherit;
+  }
+  button:hover{border-color:var(--brand);color:var(--brand)}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  button.primary:hover{filter:brightness(1.06);color:#fff}
+
+  .alert{display:none;background:var(--warnbg);border:1px solid #f5c6c0;color:#8e2b21;
+    border-radius:12px;padding:11px 13px;font-size:12.8px;line-height:1.55;margin:0 0 12px}
+  .alert.show{display:block}
+  .alert b{color:var(--warn)}
+  .note{background:#f2f8f6;border:1px solid #d6ebe5;color:#20625a;border-radius:12px;
+    padding:10px 12px;font-size:12.5px;line-height:1.55;margin:12px 0 0}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px}
+  .kpi{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fcfdff}
+  .kpi .t{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .kpi .v{font-size:23px;font-weight:650;font-variant-numeric:tabular-nums;margin:6px 0 2px;letter-spacing:-.2px}
+  .kpi .v .u{font-size:12.5px;font-weight:500;color:var(--muted);margin-left:4px}
+  .kpi .f{font-size:11.5px;color:#93a3b4;line-height:1.4}
+  .kpi.hi{border-color:#cfe9e2;background:#f7fcfb}
+  .kpi.warn{border-color:#f5c6c0;background:var(--warnbg)}
+  .kpi.warn .v{color:var(--warn)}
+  h2.sec{font-size:13px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    margin:18px 0 10px;font-weight:650;border-top:1px dashed var(--line);padding-top:14px}
+  h2.sec:first-child{border-top:0;margin-top:0;padding-top:0}
+  table.mini{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  table.mini th,table.mini td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+  table.mini th:first-child,table.mini td:first-child{text-align:left;color:#33414f}
+  table.mini thead th{color:var(--muted);font-weight:600;font-size:12px}
+  .mono{font-variant-numeric:tabular-nums}
+  footer{margin-top:18px;font-size:11.5px;color:#8b99a9;line-height:1.6}
+  #copied{font-size:12px;color:var(--brand);display:none;margin-left:4px}
+  @media print{
+    body{background:#fff;padding:0}
+    .col-in,.btnrow,.no-print{display:none!important}
+    .layout{grid-template-columns:1fr}
+    .card{border:0;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>甲烷重整制氢 · 燃料电池热电联供 测算工具
+    <span class="sub">输入机组参数 → 自动计算氢耗 / 甲烷耗 / 产水量 / 余热热水 / 碳排放 / 单位成本 · 纯前端离线可用</span>
+  </h1>
+  <div class="nav no-print">
+    <a href="./chp-industrial.html" class="cur">工业版（百千瓦级 · 协议口径）</a>
+    <a href="./chp-residential.html">民用版（别墅 / 自建房）</a>
+    <a href="../index.html" style="font-size:12.5px;text-decoration:none;color:#0b7f6e;background:#fff;border:1px solid #d6ebe5;border-radius:20px;padding:4px 12px">← 返回华森官网</a>
+</div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 输入区 ============ -->
+  <section class="card col-in no-print">
+    <details class="grp" open>
+      <summary>A 机组参数<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>额定电功率 P<small>整机净输出电功率</small></label><div><input id="P" type="number" value="100" step="1" min="0.1"></div></div>
+        <div class="row"><label>发电效率 η<small>按氢 LHV 计，40%~60%</small></label><div><input id="eta" type="number" value="50" step="0.1" min="1" max="100"><span class="u"></span></div></div>
+        <div class="row"><label>年运行小时 h</label><div><input id="h" type="number" value="8000" step="100" min="1"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>B 燃料（甲烷）<span class="badge">必填</span></summary>
+      <div class="fields">
+        <div class="row"><label>甲烷电/气比 r<small>kW / Nm³ · 经验实测值，待复核 ⚠️</small></label><div><input id="r" type="number" value="5" step="0.1" min="0.1"></div></div>
+        <div class="row"><label>PSA 氢回收率<small>仅用于理论反推行</small></label><div><input id="psa" type="number" value="80" step="1" min="1" max="100"></div></div>
+        <div class="row"><label>重整转化率<small>仅用于理论反推行</small></label><div><input id="refconv" type="number" value="90" step="1" min="1" max="100"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>C 产水 / 重整配气</summary>
+      <div class="fields">
+        <div class="row"><label>产水回收率<small>冷凝回收，70%~90%</small></label><div><input id="recov" type="number" value="80" step="1" min="0" max="100"></div></div>
+        <div class="row"><label>水碳比 S/C<small>重整配气加汽比（蒸汽量按此算）</small></label><div><input id="sc" type="number" value="5" step="0.1" min="0"></div></div>
+        <div class="radio-line">
+          <label><input type="radio" name="heatSrc" value="burner" checked> 重整器加热：内置燃烧器（协议口径 · 烧部分燃料气间接加热）</label>
+          <label><input type="radio" name="heatSrc" value="cpo"> 催化部分氧化（配空气入床 · 对比）</label>
+        </div>
+        <div class="radio-line" id="rowOxid">
+          <label><input type="radio" name="oxid" value="air" checked> 氧化剂：空气（21% O₂）</label>
+          <label><input type="radio" name="oxid" value="o2"> 纯氧</label>
+          <label><input type="radio" name="oxid" value="none"> 不配</label>
+        </div>
+        <div class="row" id="rowOC"><label>氧碳比 O₂/C<small>mol/mol｜仅催化部分氧化模式；⚠️ 热中性估算，待工艺包确认</small></label><div><input id="oc" type="number" value="0.40" step="0.01" min="0" max="1"></div></div>
+        <div class="row" id="rowCH4F"><label>原料气 CH₄ 含量<small>%（沼气 50~70；其他气源按实测）｜用于进堆氢浓度与碳核算</small></label><div><input id="ch4f" type="number" value="60" step="1" min="5" max="100"></div></div>
+        <div class="radio-line">
+          <label><input type="radio" name="heatMode" value="auto" checked> 重整供热：自热耦合（反应器自热 · 不外供蒸汽）</label>
+          <label><input type="radio" name="heatMode" value="ext"> 外供蒸汽（外部锅炉供 S/C 蒸汽）</label>
+        </div>
+        <div class="row" id="rowSelfSteam"><label>自产蒸汽占比<small>自热耦合：蒸汽由反应过程自产/系统回收，默认 100%</small></label><div><input id="steamSelf" type="number" value="100" step="1" min="0" max="100"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>D 余热</summary>
+      <div class="fields">
+        <div class="radio-line">
+          <label><input type="radio" name="qmode" value="Q" checked> ① 直接给定可用余热功率 Q</label>
+          <label><input type="radio" name="qmode" value="S"> ② 给定蒸汽流量/温度</label>
+        </div>
+        <div class="row" id="rowQ"><label>可用余热功率 Q<small>指重整/电堆排出的可回收热功率</small></label><div><input id="Q" type="number" value="100" step="1" min="0"></div></div>
+        <div class="row" id="rowS" style="display:none"><label>蒸汽流量<small>600℃ 蒸汽，冷至出水温度的总放热</small></label><div><input id="steamT" type="number" value="1" step="0.1" min="0"></div></div>
+        <div class="row" id="rowSteamT" style="display:none"><label>蒸汽温度<small>默认 600℃</small></label><div><input id="steamTemp" type="number" value="600" step="10" min="100"></div></div>
+        <div class="row"><label>进水温度 T_in<small>冬季可调低</small></label><div><input id="Tin" type="number" value="15" step="1"></div></div>
+        <div class="row"><label>出水温度 T_out</label><div><input id="Tout" type="number" value="50" step="1"></div></div>
+        <div class="row"><label>换热效率 η_hex<small>0.70~0.85</small></label><div><input id="etaHex" type="number" value="75" step="1" min="1" max="100"></div></div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>E 价格（用于经济性）<span class="badge">可改</span></summary>
+      <div class="fields">
+        <div class="row"><label>甲烷价<small>元 / Nm³</small></label><div><input id="pCH4" type="number" value="3.20" step="0.01" min="0"></div></div>
+        <div class="row"><label>电价<small>元 / kWh（自用替代外购 / 上网）</small></label><div><input id="pElec" type="number" value="0.70" step="0.01" min="0"></div></div>
+        <div class="row"><label>水价<small>元 / m³（按净补水计）</small></label><div><input id="pWater" type="number" value="4.00" step="0.01" min="0"></div></div>
+        <div class="row"><label>热价<small>元 / GJ（用于热水收益折算）</small></label><div><input id="pHeat" type="number" value="60" step="1" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>F 投资与效益（经济评价）<span class="badge">新增</span></summary>
+      <div class="fields">
+        <div class="row"><label>设备投资（不含税·含前处理）<small>万元｜合同含税 195 万 → 不含税 172.57 万</small></label><div><input id="inv" type="number" value="172.57" step="0.01" min="0"></div></div>
+        <div class="row"><label>年运维费率<small>% / 年（按投资额计：人工·耗材·大修）⚠️ 假设值</small></label><div><input id="opexRate" type="number" value="2" step="0.1" min="0"></div></div>
+        <div class="row"><label>项目寿命期<small>年</small></label><div><input id="life" type="number" value="10" step="1" min="1"></div></div>
+        <div class="row"><label>折现率<small>% / 年（算 NPV / IRR 用）</small></label><div><input id="disc" type="number" value="6" step="0.5"></div></div>
+        <div class="row"><label>年补贴 / 其他收益<small>万元 / 年（无则填 0）</small></label><div><input id="subsidy" type="number" value="0" step="0.5" min="0"></div></div>
+      </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>G 气源与碳资产（碳资产经济模型）<span class="badge">新增</span></summary>
+      <div class="fields">
+        <div class="row"><label>气源类型<small>选预设 → 自动带入 CH₄ 浓度 / 基准线 / 碳属性（可再改）</small></label>
+          <div><select id="gasType">
+            <option value="biogas" selected>养殖场沼气</option>
+            <option value="oilfield">油田伴生气</option>
+            <option value="cmm">煤矿瓦斯（井下抽采）</option>
+            <option value="cbm">煤层气（地面抽采）</option>
+            <option value="custom">自定义</option>
+          </select></div></div>
+        <div class="note" id="gasNote"></div>
+        <div class="row"><label>基准线（项目前原料气去向）<small>决定甲烷减排量的起算口径</small></label>
+          <div><select id="baseMode">
+            <option value="vent" selected>直排放空（Vent）</option>
+            <option value="flare">火炬燃烧（Flare）</option>
+            <option value="none">无（项目前后均已利用）</option>
+          </select></div></div>
+        <div class="row" id="rowFlareEff"><label>火炬燃烧效率<small>%（仅「火炬燃烧」口径；余量按 CH₄ 逃逸计）</small></label><div><input id="flareEff" type="number" value="98" step="0.5" min="50" max="100"></div></div>
+        <div class="row"><label>甲烷 GWP<small>tCO₂e / tCH₄（IPCC AR5：100 年 28 · 20 年 84）</small></label><div><input id="gwp" type="number" value="28" step="0.1" min="1"></div></div>
+        <div class="radio-line">
+          <label><input type="radio" name="gwpPick" value="100" checked> GWP₁₀₀（28）</label>
+          <label><input type="radio" name="gwpPick" value="20"> GWP₂₀（84 · 短周期强效）</label>
+        </div>
+        <div class="radio-line">
+          <label><input type="radio" name="carbonType" value="biogenic" checked> 碳属性：生物源（短周期碳，项目 CO₂ 计 0）</label>
+          <label><input type="radio" name="carbonType" value="fossil"> 化石源（甲烷碳全部计入项目排放）</label>
+        </div>
+        <div class="row"><label>电网排放因子<small>tCO₂/MWh（替代外购电量的减排）</small></label><div><input id="gridEF" type="number" value="0.5568" step="0.0001" min="0"></div></div>
+        <div class="radio-line">
+          <label><input type="checkbox" id="countGrid" checked> 计入「替代电网电量」减排</label>
+        </div>
+        <div class="row"><label>碳价<small>元 / tCO₂e（CCER · VCS 挂牌价）</small></label><div><input id="pCarbon" type="number" value="70" step="1" min="0"></div></div>
+        <div class="row"><label>碳资产计入期<small>年（默认同项目寿命期）</small></label><div><input id="creditYears" type="number" value="10" step="1" min="1"></div></div>
+        <div class="radio-line">
+          <label><input type="checkbox" id="includeCarbon" checked> 碳收益计入经济评价（回收期 / ROI / NPV）</label>
+        </div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>H 反算模式<span class="badge">可选</span></summary>
+      <div class="fields">
+        <div class="radio-line">
+          <label><input type="radio" name="rmode" value="off" checked> 关闭（正算）</label>
+          <label><input type="radio" name="rmode" value="P"> 按目标电功率反推</label>
+          <label><input type="radio" name="rmode" value="V"> 按目标热水产量反推</label>
+        </div>
+        <div class="row" id="rowRP" style="display:none"><label>目标电功率<small>kW</small></label><div><input id="tgtP" type="number" value="200" step="1" min="0.1"></div></div>
+        <div class="row" id="rowRV" style="display:none"><label>目标热水产量<small>m³/h（50℃热水）</small></label><div><input id="tgtV" type="number" value="5" step="0.1" min="0.01"></div></div>
+      </div>
+    </details>
+
+    <div class="btnrow">
+      <button class="primary" id="btnCalc">重新计算</button>
+      <button id="btnCopy">复制结果文本</button>
+      <button id="btnPrint">输出报告</button>
+      <button id="btnReset">恢复默认</button>
+      <span id="copied">已复制 ✓</span>
+    </div>
+  </section>
+
+  <!-- ============ 输出区 ============ -->
+  <section class="card col-out" id="out">
+    <div class="alert" id="alertAll"></div>
+
+    <h2 class="sec">核心指标</h2>
+    <div class="grid" id="gridCore"></div>
+
+    <h2 class="sec">重整配气（自热耦合 · 催化部分氧化）</h2>
+    <div class="grid" id="gridFeed"></div>
+    <div class="note" id="feedNote"></div>
+
+    <h2 class="sec">水 账</h2>
+    <div class="grid" id="gridWater"></div>
+    <div class="note" id="waterNote"></div>
+
+    <h2 class="sec">余热 / 热水</h2>
+    <div class="grid" id="gridHeat"></div>
+
+    <h2 class="sec">碳排放</h2>
+    <div class="grid" id="gridCO2"></div>
+
+    <h2 class="sec">碳资产（减排量与碳收益）</h2>
+    <div class="grid" id="gridCarbon"></div>
+    <table class="mini" id="tblCarbon"></table>
+    <div class="note" id="carbonNote"></div>
+
+    <h2 class="sec">经济性（按年运行小时）</h2>
+    <table class="mini" id="tblEcon"></table>
+
+    <h2 class="sec">经济效益（投资与回报）</h2>
+    <div class="grid" id="gridEcon"></div>
+    <table class="mini" id="tblEconInv"></table>
+
+    <h2 class="sec">敏感性 · 静态回收期（年）</h2>
+    <table class="mini" id="tblSens"></table>
+    <div class="note" id="econNote"></div>
+
+    <h2 class="sec">校验行（与输入口径对照）</h2>
+    <table class="mini" id="tblCheck"></table>
+
+    <div id="revSec" style="display:none">
+      <h2 class="sec">反算结果</h2>
+      <table class="mini" id="tblRev"></table>
+    </div>
+
+    <footer class="no-print" id="foot"></footer>
+  </section>
+
+</div>
+</div>
+
+<script>
+/* ===================== 常量（口径锁定，勿改） ===================== */
+/* ==CALC-CORE-START== */
+var CONST = {
+  LHV_H2: 33.3,        // kWh/kg  氢低位热值
+  RHO_H2: 0.0899,      // kg/Nm³  氢标况密度
+  RHO_CH4: 0.717,      // kg/Nm³  甲烷标况密度
+  LHV_CH4: 9.94,       // kWh/Nm³ 甲烷低位热值 (=35.8 MJ/Nm³)
+  CW: 4.18,            // kJ/(kg·K) 水比热
+  H2O_PER_H2: 9,       // 1 kg H2 -> 9 kg H2O
+  CO2_PER_CH4: 1.964,  // kg CO2 / Nm³ CH4
+  MOLAR_VOL: 22.414,   // Nm³/kmol
+  STEAM_ENTH: 3516,    // kJ/kg  600℃蒸汽冷至50℃总放热(显热1050+潜热2257+显热209)
+  GWP100: 28,          // 甲烷全球增温潜势（IPCC AR5 · 100 年）
+  GWP20: 84,           // 甲烷全球增温潜势（IPCC AR5 · 20 年）
+  GRID_EF: 0.5568,     // tCO₂/MWh 全国电网平均排放因子（生态环境部年度口径）
+  _PSA_DEFAULT: 0.80,
+  _REF_DEFAULT: 0.90
+};
+
+function calcCore(i){
+  var C = CONST;
+  var P = i.P, eta = i.eta, r = i.r, recov = i.recov, sc = i.sc;
+  var Tin = i.Tin, Tout = i.Tout, etaHex = i.etaHex;
+
+  // ① 氢耗
+  var mH2 = P / (eta * C.LHV_H2);                 // kg/h
+  var VH2 = mH2 / C.RHO_H2;                       // Nm³/h
+
+  // ② 甲烷耗
+  var VCH4 = P / r;                               // Nm³/h
+  var mCH4 = VCH4 * C.RHO_CH4;                    // kg/h
+  var etaAll = P / (VCH4 * C.LHV_CH4);            // 全链路效率
+  var VCH4Theory = mH2 * 2 / C.RHO_CH4 / i.psa / i.refconv;   // 理论反推 Nm³/h
+
+  // ③ 产水
+  var mH2OTheory = mH2 * C.H2O_PER_H2;            // kg/h
+  var mH2ORecov  = mH2OTheory * recov;            // L/h
+  var waterRate  = mH2OTheory / P;                // kg/kWh
+
+  // ④ 重整配气：S/C 蒸汽需求；自热耦合下蒸汽由反应过程自产（不外供蒸汽）
+  var steamNeed = (VCH4 / C.MOLAR_VOL) * sc * 18; // kg/h
+  var steamSelfFrac = (i.heatMode === 'ext') ? 0 : (i.steamSelf || 0); // 自产比例（外供模式=0）
+  var steamSelf = steamNeed * steamSelfFrac;       // kg/h 自产（反应过程产生/系统回收）
+  var steamExt  = steamNeed - steamSelf;           // kg/h 需外部供给的蒸汽
+
+  // ④b 重整器加热方式
+  //   内置燃烧器（协议口径·默认）：烧部分燃料气间接加热，空气仅供燃烧助燃、不进工艺气
+  //   催化部分氧化（对比）：空气配入催化床供热，N₂ 随工艺气稀释富氢
+  var heatSrc = i.heatSrc || 'burner';
+  var isBurner = (heatSrc === 'burner');
+  var oc    = (isBurner || i.oxid === 'none') ? 0 : (i.oc || 0);   // O₂/C mol/mol（仅 CPO 有效）
+  var vO2   = VCH4 * oc;                               // Nm³/h 纯氧需求（CPO）
+  var vAir  = (i.oxid === 'air') ? vO2 / 0.21 : 0;     // Nm³/h 空气量（21% O₂）
+  var vN2   = vAir * 0.79;                             // Nm³/h 空气带入 N₂（仅 CPO 进工艺气）
+  var vOxid = (i.oxid === 'o2') ? vO2 : vAir;          // Nm³/h 实际配入的氧化剂流量
+
+  // ④c 变换气（干基）组成 & 进堆氢浓度参考（化学计量估算·全转化假设）
+  //   内置燃烧器：工艺气 = 沼气 + 自产蒸汽，纯蒸汽重整 → 每 CH₄ 得 4 H₂
+  //   催化部分氧化：部分 CH₄ 走 CH₄+½O₂→CO+2H₂（再变换，每 CH₄ 得 3 H₂）
+  //   CO₂ = 甲烷转化 + 沼气自带 CO₂（按沼气 CH₄ 分数 ch4f 折算）
+  var ch4f = (i.ch4f || 60) / 100;                     // 沼气 CH₄ 体积分数
+  var feedCO2Ratio = ch4f > 0 ? (1 - ch4f) / ch4f : 0; // 每 Nm³ CH₄ 对应沼气自带 CO₂
+  var cH2  = isBurner ? VCH4 * 4 : VCH4 * (4 - 2 * oc); // Nm³/h 化学计量氢
+  var cCO2 = VCH4 * (1 + feedCO2Ratio);                // Nm³/h 碳→CO₂ + 沼气自带 CO₂
+  var cN2  = (!isBurner && i.oxid === 'air') ? VCH4 * oc / 0.21 * 0.79 : 0;  // Nm³/h
+  var cDry = cH2 + cCO2 + cN2;                         // Nm³/h 干基总量
+  var yH2raw = cDry > 0 ? cH2 / cDry : 0;              // 纯化前·干基 H₂
+  var yH2deN = (cH2 + cCO2) > 0 ? cH2 / (cH2 + cCO2) : 0;       // 脱氮后（仅脱 N₂，CO₂ 未脱）
+  var mH2Stoich = cH2 * 0.0899;                        // kg/h 化学计量氢质量
+  var vBiogas = ch4f > 0 ? VCH4 / ch4f : VCH4;         // Nm³/h 沼气体积（含 CO₂）
+
+  // ⑤ 余热 -> 热水
+  var Qavail;
+  if (i.qmode === 'S') {
+    Qavail = i.steamT * 1000 * C.STEAM_ENTH / 3600;   // kW
+  } else {
+    Qavail = i.Q;
+  }
+  var Quse = Qavail * etaHex;                          // kW
+  var dT = (Tout - Tin);
+  var VhotTheory = dT > 0 ? Qavail * 3600 / (C.CW * dT) / 1000 : 0;  // m³/h
+  var Vhot = dT > 0 ? Quse * 3600 / (C.CW * dT) / 1000 : 0;          // m³/h
+
+  // ⑥ CO2
+  var mCO2 = VCH4 * C.CO2_PER_CH4;                     // kg/h
+  var yCO2 = mCO2 * i.h / 1000;                        // t/年
+
+  // ⑦ 经济性
+  var yMWh = P * i.h / 1000;
+  var yCH4 = VCH4 * i.h;
+  var costCH4 = yCH4 * i.pCH4;
+  var netMakeup = Math.max(0, steamExt - mH2ORecov);   // kg/h 净补水（仅需外供的蒸汽计入）
+  var yWater = netMakeup * i.h / 1000;                  // m³/年
+  var costWater = yWater * i.pWater;
+  var yHot = Vhot * i.h;                                // m³/年
+  var heatGJ = Vhot * C.CW * dT / 1000;                 // GJ/h
+  var yHeatGJ = heatGJ * i.h;
+  var revHeat = yHeatGJ * i.pHeat;
+  // 单位电成本：元 ÷ kWh（yMWh 是 MWh，需 ×1000 换成 kWh）
+  var unitCost = yMWh > 0 ? (costCH4 + costWater) / (yMWh * 1000) : 0;
+  var unitCostNetHeat = yMWh > 0 ? (costCH4 + costWater - revHeat) / (yMWh * 1000) : 0;
+
+  // ⑧ 经济效益（投资与回报）—— 投资口径：整套装置含税・含前处理
+  var inv       = (i.inv || 0) * 10000;              // 元（输入单位：万元）
+  var opexRate  = i.opexRate || 0;                   // 年运维费率（占投资额）
+  var disc      = i.disc || 0;                       // 折现率
+  var life      = i.life || 1;                       // 项目寿命期（年）
+  var revElec   = yMWh * 1000 * i.pElec;             // 年发电收益 = 年发电量 × 电价
+  var opex      = inv * opexRate;                    // 年运维费
+  var subsidy   = (i.subsidy || 0) * 10000;          // 年补贴/其他收益（元）
+
+  // ⑨ 碳资产（基准线 → 减排量 → 碳收益）
+  //   基准线 = 项目未实施时原料气的处置方式（直排放空 vent / 火炬燃烧 flare / 无 none）
+  //   项目排放 = 甲烷碳氧化为 CO₂（化石源计入；生物源按短周期碳计 0）
+  //   替代电网 = 机组发电替代外购电网电量的减排
+  var gasType    = i.gasType || 'biogas';
+  var gwp        = i.gwp || C.GWP100;                // 甲烷 GWP（默认 AR5 · 100 年 = 28）
+  var baseMode   = i.baseMode || 'vent';
+  var flareEff   = (typeof i.flareEff === 'number' && isFinite(i.flareEff)) ? i.flareEff : 0.98;
+  var isFossilC  = (i.carbonType === 'fossil');      // 化石源碳 / 生物源碳
+  var efGrid     = (typeof i.gridEF === 'number' && isFinite(i.gridEF)) ? i.gridEF : C.GRID_EF;
+  var CH4_t      = VCH4 * C.RHO_CH4 / 1000;          // t/h 甲烷质量流量
+  var co2FromCH4 = VCH4 * C.CO2_PER_CH4 / 1000;      // t/h 甲烷碳完全氧化 → CO₂
+  var beCH4;
+  if (baseMode === 'flare')     beCH4 = co2FromCH4 * flareEff + CH4_t * (1 - flareEff) * gwp;
+  else if (baseMode === 'vent') beCH4 = CH4_t * gwp;
+  else                          beCH4 = 0;
+  var peCH4      = isFossilC ? co2FromCH4 : 0;       // 项目排放（tCO₂e/h）
+  var gridAvoid  = i.countGrid ? (P * efGrid / 1000) : 0;   // tCO₂e/h 替代电网
+  var erH        = beCH4 + gridAvoid - peCH4;        // tCO₂e/h 净减排
+  var erY        = erH * i.h;                        // tCO₂e/年
+  var erIntensity= (P * i.h) > 0 ? erY * 1000 / (P * i.h) : 0;   // kgCO₂e/kWh
+  var pCarbon    = i.pCarbon || 0;                   // 元 / tCO₂e
+  var carbonRevY = erY * pCarbon;                    // 元/年
+  var creditY    = i.creditYears || life;            // 计入期（年）
+  var carbonCum  = erY * creditY;                    // 计入期累计减排量（tCO₂e）
+  var carbonNPV  = 0;
+  for (var yc = 1; yc <= creditY; yc++) carbonNPV += carbonRevY / Math.pow(1 + disc, yc);
+
+  var revCarbon = i.includeCarbon ? carbonRevY : 0;   // 碳收益（可开关）
+  var revTotal  = revElec + revHeat + subsidy + revCarbon;   // 年收益合计
+  var costTotal = costCH4 + costWater + opex;         // 年成本合计
+  var netAnnual = revTotal - costTotal;               // 年净收益
+  var netAnnualNoC = revElec + revHeat + subsidy - costTotal;              // 不含碳收益
+  var paybackNoC   = netAnnualNoC > 0 ? inv / netAnnualNoC : Infinity;     // 不含碳的回收期
+  var payback   = netAnnual > 0 ? inv / netAnnual : Infinity;   // 静态回收期
+  var roi       = inv > 0 ? netAnnual / inv : 0;                // 投资收益率
+  // 现金流 / NPV / 动态回收期
+  var cum = 0, npv = -inv, prevDisc = -inv, discPayback = null;
+  var flows = [];
+  for (var y = 1; y <= life; y++) {
+    var df  = Math.pow(1 + disc, y);
+    var dcf = netAnnual / df;
+    cum += netAnnual;
+    npv += dcf;
+    var curDisc = prevDisc + dcf;
+    if (discPayback === null && dcf > 0 && curDisc >= 0) discPayback = (y - 1) + (-prevDisc) / dcf;
+    prevDisc = curDisc;
+    flows.push({ y: y, cf: netAnnual, cum: cum, cumDisc: curDisc });
+  }
+  var cumProfit = cum;                                // 寿命期累计净收益
+  var carbonShare = revTotal > 0 ? revCarbon / revTotal : 0;   // 碳收益占年收益比
+  // IRR：净现值对折现率单调递减，二分法
+  function npvAt(rate){ var v = -inv; for (var k = 1; k <= life; k++) v += netAnnual / Math.pow(1 + rate, k); return v; }
+  var irr = null;
+  if (netAnnual > 0 && inv > 0) {
+    var lo = -0.9, hi = 10;
+    if (npvAt(lo) > 0 && npvAt(hi) < 0) {
+      for (var s = 0; s < 120; s++) { var mid = (lo + hi) / 2; if (npvAt(mid) > 0) lo = mid; else hi = mid; }
+      irr = (lo + hi) / 2;
+    }
+  }
+
+  return {
+    mH2:mH2, VH2:VH2, VCH4:VCH4, mCH4:mCH4, etaAll:etaAll, VCH4Theory:VCH4Theory,
+    mH2OTheory:mH2OTheory, mH2ORecov:mH2ORecov, waterRate:waterRate, steamNeed:steamNeed,
+    steamSelf:steamSelf, steamExt:steamExt,
+    oc:oc, vO2:vO2, vAir:vAir, vN2:vN2, vOxid:vOxid,
+    heatSrc:heatSrc, isBurner:isBurner, ch4f:ch4f, vBiogas:vBiogas,
+    cH2:cH2, cCO2:cCO2, cN2:cN2, cDry:cDry,
+    yH2raw:yH2raw, yH2deN:yH2deN, mH2Stoich:mH2Stoich,
+    Qavail:Qavail, Quse:Quse, VhotTheory:VhotTheory, Vhot:Vhot,
+    mCO2:mCO2, yCO2:yCO2,
+    yMWh:yMWh, yCH4:yCH4, costCH4:costCH4, netMakeup:netMakeup, yWater:yWater,
+    costWater:costWater, yHot:yHot, heatGJ:heatGJ, yHeatGJ:yHeatGJ, revHeat:revHeat,
+    unitCost:unitCost, unitCostNetHeat:unitCostNetHeat,
+    inv:inv, opexRate:opexRate, life:life, disc:disc, subsidy:subsidy,
+    revElec:revElec, opex:opex, revTotal:revTotal, costTotal:costTotal,
+    netAnnual:netAnnual, payback:payback, roi:roi, npv:npv, irr:irr,
+    discPayback:discPayback, cumProfit:cumProfit, flows:flows,
+    gasType:gasType, gwp:gwp, baseMode:baseMode, flareEff:flareEff, isFossilC:isFossilC,
+    efGrid:efGrid, CH4_t:CH4_t, co2FromCH4:co2FromCH4, beCH4:beCH4, peCH4:peCH4,
+    gridAvoid:gridAvoid, erH:erH, erY:erY, erIntensity:erIntensity,
+    pCarbon:pCarbon, carbonRevY:carbonRevY, creditY:creditY, carbonCum:carbonCum,
+    carbonNPV:carbonNPV, revCarbon:revCarbon, carbonShare:carbonShare,
+    netAnnualNoC:netAnnualNoC, paybackNoC:paybackNoC
+  };
+}
+
+/* 反算：目标电功率 -> 直接缩放；目标热水产量 -> 反推所需余热功率与蒸汽量 */
+function calcReverse(i){
+  var C = CONST, out = {};
+  var dT = i.Tout - i.Tin;
+  if (i.rmode === 'P') {
+    out.tgtP = i.tgtP;
+    out.reqQ = null;
+  } else if (i.rmode === 'V') {
+    out.tgtV = i.tgtV;
+    out.reqQ = dT > 0 ? i.tgtV * 1000 * C.CW * dT / 3600 / i.etaHex : 0;  // kW（含换热效率）
+    out.reqSteam = out.reqQ * 3600 / C.STEAM_ENTH / 1000;                  // t/h（600℃蒸汽）
+  }
+  return out;
+}
+/* ==CALC-CORE-END== */
+
+/* ===================== 页面逻辑 ===================== */
+var $ = function(id){ return document.getElementById(id); };
+var num = function(id, d){ var v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+var pct = function(id, d){ return num(id, d*100)/100; };
+var f = function(v, n){ if(!isFinite(v)) return '—';
+  return v.toLocaleString('zh-CN', {minimumFractionDigits:n, maximumFractionDigits:n}); };
+
+var DEFAULTS = {
+  P:100, eta:50, h:8000, r:5, psa:80, refconv:90, recov:80, sc:5,
+  Q:100, steamT:1, steamTemp:600, Tin:15, Tout:50, etaHex:75,
+  steamSelf:100, oc:0.40, ch4f:60, heatSrc:'burner',
+  pCH4:3.20, pElec:0.70, pWater:4.00, pHeat:60,
+  inv:172.57, opexRate:2, life:10, disc:6, subsidy:0,
+  flareEff:98, gwp:28, gridEF:0.5568, pCarbon:70, creditYears:10
+};
+
+/* 气源预设：选中后自动带入 CH₄ 浓度 / 基准线 / 碳属性（用户可再改）
+   —— 适配度依据《国内三气源×华森 PEMFC 路线·适配度与效益速查》2026-10-15 */
+var GAS_PRESETS = {
+  biogas: { ch4f:60, baseMode:'vent',  carbonType:'biogenic', label:'养殖场沼气',
+    note:'<b>✅ 养殖场沼气（主战场）</b>：CH₄ 55~65%，H₂S 1000~4000 ppm（猪粪最高）→ 必须「粗脱硫+精脱硫」（正是你的工艺护城河）；生物源碳 → 项目 CO₂ 计 0，减排来自「避免甲烷直排 + 替代电网」。寒区冬季产气衰减 → CHP 余热回用发酵罐是差异化解法。' },
+  oilfield: { ch4f:85, baseMode:'flare', carbonType:'fossil', label:'油田伴生气',
+    note:'<b>✅ 油田伴生气（可做，先过两关）</b>：CH₄ 70~95%，气质近天然气、重整最顺，燃料成本≈0（原为火炬/放空）；<b>关卡1</b>：重烃 C₂+ 5~20% → 重整炉结焦风险，需加预转化/脱重烃（增投资与运维）；<b>关卡2</b>：三桶油供应商准入门槛高、决策慢，宜先做零散井/套管气试点。化石源碳 → 甲烷碳计入项目排放。' },
+  cmm: { ch4f:45, baseMode:'vent', carbonType:'fossil', label:'煤矿瓦斯（井下抽采）',
+    note:'<b>⚠️ 煤矿瓦斯（不建议走本路线）</b>：井下抽采 CH₄ 仅 30~60%，且混空气（<b>O₂ 5~15%</b>）→ O₂ 进重整炉会烧催化剂、PEMFC 更怕 → 触碰技术红线，需先提浓（成本↑、经济性恶化）。此市场属瓦斯内燃机。⚠️ 补贴虽厚（0.3 元/m³ + 0.25 元/kWh），但路线不匹配就是白搭。' },
+  cbm: { ch4f:92, baseMode:'vent', carbonType:'fossil', label:'煤层气（地面抽采）',
+    note:'<b>🔶 煤层气（地面抽采·技术可行）</b>：CH₄&gt;90%、无空气混入，重整路线无障碍；但地面抽采煤层气通常已有管道/液化出路，分布式利用需先确认气源归属与出路竞争。' },
+  custom: { ch4f:60, baseMode:'vent', carbonType:'fossil', label:'自定义',
+    note:'<b>自定义气源</b>：请按实测成分与基准线情形填写。' }
+};
+
+function readInputs(){
+  return {
+    P:num('P',100), eta:pct('eta',0.5), h:num('h',8000), r:num('r',5),
+    psa:pct('psa',0.8), refconv:pct('refconv',0.9),
+    recov:pct('recov',0.8), sc:num('sc',5),
+    heatMode:(document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto',
+    steamSelf:pct('steamSelf',1),
+    oxid:(document.querySelector('input[name=oxid]:checked')||{}).value || 'air',
+    oc:num('oc',0.40),
+    ch4f:num('ch4f',60),
+    heatSrc:(document.querySelector('input[name=heatSrc]:checked')||{}).value || 'burner',
+    qmode:document.querySelector('input[name=qmode]:checked').value,
+    Q:num('Q',100), steamT:num('steamT',1), steamTemp:num('steamTemp',600),
+    Tin:num('Tin',15), Tout:num('Tout',50), etaHex:pct('etaHex',0.75),
+    pCH4:num('pCH4',3.2), pElec:num('pElec',0.70), pWater:num('pWater',4),
+    pHeat:num('pHeat',60),
+    inv:num('inv',172.57), opexRate:pct('opexRate',0.02), life:num('life',10),
+    disc:pct('disc',0.06), subsidy:num('subsidy',0),
+    gasType:($('gasType')||{}).value || 'biogas',
+    baseMode:($('baseMode')||{}).value || 'vent',
+    flareEff:pct('flareEff',0.98),
+    gwp:num('gwp',28),
+    carbonType:(document.querySelector('input[name=carbonType]:checked')||{}).value || 'biogenic',
+    gridEF:num('gridEF',0.5568),
+    countGrid:!!($('countGrid') && $('countGrid').checked),
+    pCarbon:num('pCarbon',70),
+    creditYears:num('creditYears',10),
+    includeCarbon:!!($('includeCarbon') && $('includeCarbon').checked),
+    rmode:document.querySelector('input[name=rmode]:checked').value,
+    tgtP:num('tgtP',200), tgtV:num('tgtV',5)
+  };
+}
+
+function kpi(t, v, u, formula, cls){
+  return '<div class="kpi '+(cls||'')+'"><div class="t">'+t+'</div><div class="v">'+v+
+         (u?'<span class="u">'+u+'</span>':'')+'</div><div class="f">'+formula+'</div></div>';
+}
+
+function render(){
+  var i = readInputs();
+  var R = calcCore(i);
+
+  /* --- 警示：全链路效率 --- */
+  var a = $('alertAll');
+  if (R.etaAll > 0.5) {
+    a.className = 'alert show';
+    a.innerHTML = '<b>⚠ 全链路效率 '+(R.etaAll*100).toFixed(1)+'% &gt; 50%</b>：该气电比偏低（乐观）。'+
+      '请确认是否已扣除重整自用甲烷、PSA 尾气是否回烧。';
+  } else {
+    a.className = 'alert';
+  }
+
+  /* --- 核心指标 --- */
+  $('gridCore').innerHTML =
+    kpi('氢耗', f(R.mH2,2), 'kg/h', 'm_H2 = P ÷ (η × 33.3)', 'hi') +
+    kpi('氢耗', f(R.VH2,1), 'Nm³/h', 'V_H2 = m_H2 ÷ 0.0899') +
+    kpi('甲烷耗', f(R.VCH4,2), 'Nm³/h', 'V_CH4 = P ÷ r', 'hi') +
+    kpi('甲烷耗', f(R.mCH4,2), 'kg/h', 'm_CH4 = V_CH4 × 0.717') +
+    kpi('全链路效率', (R.etaAll*100).toFixed(1), '%', 'η_all = P ÷ (V_CH4 × 9.94)'+
+        (R.etaAll>0.5?' <b style="color:#c0392b">（&gt;50%，见上方警示）</b>':''), R.etaAll>0.5?'warn':'') +
+    kpi('理论反推甲烷耗', f(R.VCH4Theory,2), 'Nm³/h',
+        'm_H2 × 2 ÷ 0.717 ÷ 0.80(PSA) ÷ 0.90(重整)');
+
+  /* --- 重整配气 --- */
+  var oxName = i.oxid==='air' ? '空气（21% O₂）' : (i.oxid==='o2' ? '纯氧' : '不配（纯蒸汽重整）');
+  var srcName = R.isBurner ? '内置燃烧器（烧部分燃料气）' : '催化部分氧化（配'+oxName+'入床）';
+  $('gridFeed').innerHTML =
+    kpi('重整蒸汽需求', f(R.steamNeed,2), 'kg/h', '(V_CH4 ÷ 22.414) × S/C × 18（S/C='+f(i.sc,1)+'）') +
+    kpi('其中·自产蒸汽', f(R.steamSelf,2), 'kg/h',
+        i.heatMode==='ext' ? '外供蒸汽模式：不自产' : ('自热耦合：反应过程自产 '+f((i.steamSelf||0)*100,0)+'%'),
+        i.heatMode==='auto' ? 'hi' : '') +
+    kpi('需外供蒸汽', f(R.steamExt,2), 'kg/h',
+        '蒸汽需求 − 自产', R.steamExt > 0 ? 'warn' : '') +
+    kpi('重整器加热', R.isBurner ? '内置燃烧器' : '催化部分氧化', '',
+        R.isBurner ? '协议口径：燃料气+空气→燃烧器，间接加热；空气不进工艺气' : '对比口径：空气入床，N₂ 稀释富氢') +
+    (R.isBurner
+      ? kpi('助燃空气', '不进工艺气', '', '燃烧烟气单独排放，不带 N₂ 进产氢路')
+      : (kpi('O₂ 配入', f(R.vO2,2), 'Nm³/h',
+            'V_CH4 × O₂/C（O₂/C='+f(i.oc,2)+'）', i.oxid!=='none' ? 'hi' : '') +
+         kpi(i.oxid==='o2' ? '氧化剂流量' : '空气配入', f(R.vOxid,2), 'Nm³/h',
+            i.oxid==='air' ? 'O₂ ÷ 0.21' : (i.oxid==='o2' ? '纯氧直配' : '不配氧化剂')))) +
+    (R.isBurner ? '' : (i.oxid==='air' ? kpi('空气带入 N₂', f(R.vN2,2), 'Nm³/h', '空气 × 0.79（稀释富氢气）', 'warn') : '')) +
+    kpi('沼气 CH₄ 含量', f(i.ch4f,0), '%', '协议 50~70；沼气量 '+f(R.vBiogas,1)+' Nm³/h（含 CO₂）') +
+    kpi('变换气·干基 H₂', f(R.yH2raw*100,1), '%',
+        '纯化前·化学计量估算（SR 全转化；含沼气自带 CO₂ 稀释）', R.yH2raw<0.70 ? 'warn' : '') +
+    kpi('脱氮后·干基 H₂', f(R.yH2deN*100,1), '%',
+        R.isBurner ? '内置燃烧器：工艺气无 N₂，与纯化前相同' : '仅脱 N₂（CO₂ 未脱）', R.yH2deN>=0.70 ? 'hi' : 'warn') +
+    kpi('进堆氢浓度（参考）', (R.yH2deN>=0.70 ? '≥70' : f(R.yH2deN*100,0)), '%',
+        '协议要求 ≥70%（体积）；详见下方说明', R.yH2deN>=0.70 ? 'hi' : 'warn');
+  $('feedNote').innerHTML =
+    (R.isBurner
+      ? '<b>协议口径（内置燃烧器）：</b>重整反应器<b>内置燃烧器</b>，燃烧部分燃料气（沼气/PSA 尾气）提供重整吸热；'
+        + '燃烧器<b>间接加热</b>，烟气单独排放，<b>空气不进工艺气</b>。工艺气 = 沼气(CH₄) + 自产蒸汽。'
+      : '<b>对比口径（催化部分氧化）：</b>反应器<b>无燃烧器</b>，热量由催化床内的部分氧化反应提供，与蒸汽重整耦合；'
+        + '配气 = 沼气(CH₄) + '+ (i.oxid==='none' ? '（不配氧化剂）' : oxName) +' + 自产蒸汽。') +
+    (!R.isBurner && i.oxid==='air'
+      ? '<br>⚠️ 配空气带入 N₂（'+f(R.vN2,1)+' Nm³/h），随气进变换/纯化，<b>稀释富氢气</b>。'
+      : '') +
+    '<br><br><b>进堆氢浓度（参考）：</b>纯化前变换气（干基）H₂ ≈ <b>'+f(R.yH2raw*100,1)+'%</b>'
+    + (R.isBurner ? '（稀释来自<b>沼气自带的 CO₂</b>，'+f((1-R.ch4f)*100,0)+'%；工艺气无 N₂）'
+                  : '（含 N₂ 稀释）')
+    + '；经纯化单元吸附脱除 CO₂/CO/CH₄/N₂ 后，进堆 H₂ <b>≥70%（体积），CO&lt;10 ppm</b>' +
+    '（本项目工艺气含 N₂，纯化单元含<b>脱氮吸附塔</b>，与设备清单一致）。'
+    + '<br>口径：化学计量估算（SR 全转化假设）；沼气 CH₄ 含量 ↑ → 氢浓度 ↑（当前 '+f(R.yH2raw*100,1)+'%）；'
+    + (R.isBurner ? '' : '配气 O₂/C ↑ → 氢浓度 ↓；')
+    + '与主口径氢耗自洽的 O₂/C ≈ 0.33。'
+    + '<br>⚠️ 若选「催化部分氧化」，O₂/C 默认 '+f(i.oc,2)+' 为<b>热中性估算值</b>（≈0.35~0.45），<b>请以工艺包/实测确认</b>。';
+
+  /* --- 水账 --- */
+  $('gridWater').innerHTML =
+    kpi('理论产水', f(R.mH2OTheory,2), 'kg/h', 'm_H2O = m_H2 × 9', 'hi') +
+    kpi('实际回收产水', f(R.mH2ORecov,1), 'L/h', '理论产水 × 回收率 '+(i.recov*100).toFixed(0)+'%') +
+    kpi('产水率', f(R.waterRate,2), 'kg/kWh', '理论产水 ÷ 电功率 P') +
+    kpi('净补水', f(R.netMakeup,2), 'kg/h', '外供蒸汽 − 回收产水（下限 0）') ;
+  if (i.heatMode === 'auto') {
+    $('waterNote').innerHTML =
+      '<b>自热耦合口径（反应器自热，不需外通蒸汽）：</b>重整用汽由反应过程自产（部分燃料氧化/变换产汽 + 系统水热回收），'+
+      '配气蒸汽需求 '+f(R.steamNeed,2)+' kg/h 中自产 '+f(R.steamSelf,2)+' kg/h、需外供 '+f(R.steamExt,2)+' kg/h；'+
+      '净补水 ＝ 外供蒸汽 − 回收产水（'+f(R.mH2ORecov,2)+' L/h）＝ <b>'+f(R.netMakeup,2)+' kg/h</b>。'+
+      (R.netMakeup <= 0
+        ? '<br><b>→ 系统水自平衡：反应产水 + 冷凝回收即可满足重整用汽，无需外部补充水。</b>'
+        : '<br>→ 自产蒸汽不足以覆盖用汽，仍需外部补水。');
+  } else {
+    $('waterNote').innerHTML =
+      '<b>外供蒸汽口径（对比）：</b>S/C 蒸汽由外部锅炉供给，全部计入外部需水。'+
+      '重整配汽量（S/C='+f(i.sc,1)+' → '+f(R.steamNeed,2)+' kg/h）'+
+      '通常大于燃料电池产水量（'+f(R.mH2ORecov,2)+' L/h），水账应按「补充水」看，<b>不要</b>按「产水外供」讲。';
+  }
+
+  /* --- 余热 --- */
+  $('gridHeat').innerHTML =
+    kpi('可用余热功率', f(R.Qavail,1), 'kW', i.qmode==='S' ? '蒸汽 '+f(i.steamT,2)+' t/h × 3516 kJ/kg ÷ 3600' : '直接输入 Q') +
+    kpi('换热后有效热', f(R.Quse,1), 'kW', 'Q_用 = Q × η_hex '+f(i.etaHex,2)) +
+    kpi('热水产量（理论）', f(R.VhotTheory,2), 'm³/h', 'Q × 3600 ÷ (4.18 × ΔT) ÷ 1000') +
+    kpi('热水产量（实际）', f(R.Vhot,2), 'm³/h', 'Q_用 × 3600 ÷ (4.18 × ΔT) ÷ 1000', 'hi') +
+    kpi('可供热功率', f(R.Quse,3), 'kW', '按 50℃ 出水口径') ;
+
+  /* --- CO2 --- */
+  $('gridCO2').innerHTML =
+    kpi('CO₂ 排放', f(R.mCO2,2), 'kg/h', 'm_CO2 = V_CH4 × 1.964') +
+    kpi('CO₂ 年排放', f(R.yCO2,1), 't/年', 'm_CO2 × h ÷ 1000', 'hi') +
+    kpi('单位电 CO₂', f(R.mCO2/i.P,3), 'kg/kWh', 'm_CO2 ÷ P');
+
+  /* --- 碳资产（基准线 → 减排量 → 碳收益） --- */
+  var gtLabel = (GAS_PRESETS[i.gasType] && GAS_PRESETS[i.gasType].label) || '自定义';
+  var baseLabel = i.baseMode==='flare' ? '火炬燃烧' : (i.baseMode==='vent' ? '直排放空' : '无（已利用）');
+  var cLabel = R.isFossilC ? '化石源碳' : '生物源碳';
+  $('gridCarbon').innerHTML =
+    kpi('年减排量', f(R.erY,1), 'tCO₂e/年', '基准线 + 替代电网 − 项目排放', R.erY>0?'hi':'warn') +
+    kpi('减排强度', f(R.erIntensity,3), 'kgCO₂e/kWh', '年减排量 ÷ 年发电量') +
+    kpi('年碳收益', f(R.carbonRevY/10000,2), '万元', f(R.erY,0)+' t × '+f(i.pCarbon,0)+' 元/tCO₂e', R.carbonRevY>0?'hi':'') +
+    kpi('计入期累计减排', f(R.carbonCum,0), 'tCO₂e', f(i.creditYears,0)+' 年累计') +
+    kpi('碳资产现值', f(R.carbonNPV/10000,1), '万元', '折现率 '+f(i.disc*100,1)+'% · '+f(i.creditYears,0)+' 年') +
+    kpi('碳收益占年收益', f(R.carbonShare*100,1), '%', '碳收益 ÷ 年收益合计', R.carbonShare>0.2?'hi':'');
+
+  var t3 = '<thead><tr><th>碳资产 · 减排量拆解（tCO₂e/年）</th><th>数值</th></tr></thead><tbody>';
+  t3 += trow('气源 ｜ 基准线 ｜ 碳属性', gtLabel+' ｜ '+baseLabel+' ｜ '+cLabel);
+  t3 += trow('① 基准线排放', f(R.beCH4*i.h,1),
+      i.baseMode==='vent' ? ('甲烷直排 × GWP '+f(i.gwp,1)+'（'+f(R.CH4_t*i.h,3)+' t CH₄/年）')
+      : (i.baseMode==='flare' ? ('火炬 CO₂ × '+f(i.flareEff*100,0)+'% + 未燃 CH₄ 逃逸 × GWP '+f(i.gwp,1)) : '无（项目前后均已利用）'));
+  t3 += trow('② 替代电网电量减排', f(R.gridAvoid*i.h,1),
+      i.countGrid ? (f(R.yMWh,0)+' MWh × '+f(i.gridEF,4)+' tCO₂/MWh') : '未计入（已关闭）');
+  t3 += trow('③ 项目排放（甲烷碳 → CO₂）', '−'+f(R.peCH4*i.h,1),
+      R.isFossilC ? '化石源：甲烷碳全部计入' : '生物源：按短周期碳计 0');
+  t3 += '<tr style="border-top:2px solid #e2e9f0"><td><b>净减排量 ①+②−③</b></td><td class="mono"><b>'+f(R.erY,1)+' tCO₂e/年</b></td></tr>';
+  t3 += trow('年碳收益', f(R.carbonRevY/10000,2)+' 万元', '@ '+f(i.pCarbon,0)+' 元/tCO₂e');
+  t3 += trow('计入期（'+f(i.creditYears,0)+'年）累计减排', f(R.carbonCum,1)+' tCO₂e');
+  t3 += trow('碳资产现值（折现）', f(R.carbonNPV/10000,2)+' 万元', '折现率 '+f(i.disc*100,1)+'%');
+  t3 += trow('碳收益是否计入经济评价', i.includeCarbon ? '是 ✅（已计入回收期/ROI/NPV）' : '否（仅展示）',
+      i.includeCarbon ? '' : '可在 G 组勾选开启');
+  t3 += trow('回收期（含碳 / 不含碳）',
+      (isFinite(R.payback)?f(R.payback,2):'∞')+' / '+(isFinite(R.paybackNoC)?f(R.paybackNoC,2):'∞')+' 年', '碳收益的杠杆效应');
+  t3 += '</tbody>';
+  $('tblCarbon').innerHTML = t3;
+
+  $('carbonNote').innerHTML =
+    '<b>碳资产口径（新增 · 估算参考）：</b>减排量 = <b>基准线排放</b>（项目未实施时原料气直排放空 / 火炬燃烧的甲烷排放）'
+    + ' + <b>替代电网电量减排</b>（机组发电替代外购电，按电网排放因子 '+f(i.gridEF,4)+' tCO₂/MWh）'
+    + ' − <b>项目排放</b>（甲烷碳氧化为 CO₂；<b>生物源碳计 0</b>、化石源按全部碳计入）。'
+    + '<br>• 甲烷 GWP：当前取 <b>'+f(i.gwp,1)+'</b>（'+(i.gwp>=80?'AR5·20 年·短周期强效':'AR5·100 年·CCER 常用')+'）——<b>GWP 口径对结果影响极大</b>，CCER/VCS 备案请按方法学指定值。'
+    + '<br>• 原料气约 '+f(R.vBiogas,1)+' Nm³/h（CH₄ '+f(i.ch4f,0)+'%），甲烷流量 '+f(R.VCH4,1)+' Nm³/h = '+f(R.CH4_t,4)+' t/h。'
+    + '<br>• <b>碳价敏感性</b>：碳价每 ±10 元/tCO₂e → 年碳收益 ±'+f(R.erY*10/10000,2)+' 万元（当前碳价 '+f(i.pCarbon,0)+'）。'
+    + '<br>• <b>方法学提示</b>：甲烷回收利用（沼气 / 煤矿瓦斯 / 放空伴生气）属 CCER 重启后鼓励类；实际备案需按《温室气体自愿减排项目方法学》指定基准线与额外性要求执行，本工具仅供快速估算。'
+    + '<br>• ⚠️ 与「碳排放」区的「单位电 CO₂」口径不同：前者是<b>烟囮直排</b>（物理排放），此处是<b>项目边界净减排</b>（含基准线与替代电网）。';
+
+  /* --- 经济性 --- */
+  var e = '';
+  function trow(k,v,note){ return '<tr><td>'+k+'</td><td class="mono">'+v+
+      (note?' <span style="color:#93a3b4">'+note+'</span>':'')+'</td></tr>'; }
+  e += '<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+  e += trow('年发电量', f(R.yMWh,1)+' MWh', '@ '+f(i.P,1)+' kW × '+f(i.h,0)+' h');
+  e += trow('年耗气量', f(R.yCH4,0)+' Nm³');
+  e += trow('年气费', f(R.costCH4/10000,2)+' 万元', '@ '+f(i.pCH4,2)+' 元/Nm³');
+  e += trow('年净补水量', f(R.yWater,1)+' m³');
+  e += trow('年水费', f(R.costWater/10000,3)+' 万元', '@ '+f(i.pWater,2)+' 元/m³');
+  e += trow('年热水产量', f(R.yHot,0)+' m³', '@ '+f(i.Tout,0)+'℃');
+  e += trow('年可供热量', f(R.yHeatGJ,0)+' GJ');
+  e += trow('热水收益（折算）', f(R.revHeat/10000,2)+' 万元', '@ '+f(i.pHeat,0)+' 元/GJ');
+  e += '<tr style="border-top:2px solid #e2e9f0"><td><b>单位电成本</b>（气+水，未抵扣热收益）</td><td class="mono"><b>'+f(R.unitCost,3)+' 元/kWh</b></td></tr>';
+  e += '<tr><td>单位电成本（抵扣热收益后）</td><td class="mono">'+f(R.unitCostNetHeat,3)+' 元/kWh</td></tr>';
+  e += '</tbody>';
+  $('tblEcon').innerHTML = e;
+
+  /* --- 经济效益（投资与回报） --- */
+  var costAll = R.costCH4 + R.costWater + R.opex;
+  $('gridEcon').innerHTML =
+    kpi('设备投资', f(i.inv,1), '万元', '含税 · 含前处理', 'hi') +
+    kpi('年发电收益', f(R.revElec/10000,2), '万元', f(R.yMWh,0)+' MWh × '+f(i.pElec,2)+' 元/kWh') +
+    kpi('年供热收益', f(R.revHeat/10000,2), '万元', f(R.yHeatGJ,0)+' GJ × '+f(i.pHeat,0)+' 元/GJ', 'hi') +
+    kpi('年碳收益', f(R.revCarbon/10000,2), '万元',
+        i.includeCarbon ? (f(R.erY,0)+' tCO₂e × '+f(i.pCarbon,0)+' 元/t') : '未计入（G 组可开启）',
+        R.revCarbon>0 ? 'hi' : '') +
+    kpi('年运行成本', f(costAll/10000,2), '万元', '气 + 水 + 运维') +
+    kpi('年净收益', f(R.netAnnual/10000,2), '万元', '收益 − 成本', R.netAnnual>0?'hi':'warn') +
+    kpi('静态回收期', isFinite(R.payback)? f(R.payback,1) : '∞', '年', '投资 ÷ 年净收益', (isFinite(R.payback)&&R.payback<=i.life)?'hi':'warn') +
+    kpi('回收期（含碳 / 不含碳）',
+        (isFinite(R.payback)?f(R.payback,1):'∞')+' / '+(isFinite(R.paybackNoC)?f(R.paybackNoC,1):'∞'), '年',
+        '碳收益的杠杆效应', (R.payback < R.paybackNoC) ? 'hi' : '') +
+    kpi('动态回收期', (R.discPayback!==null? f(R.discPayback,1) : '&gt;'+f(i.life,0)), '年', '折现率 '+f(i.disc*100,1)+'%', (R.discPayback!==null)?'hi':'warn') +
+    kpi('投资收益率 ROI', f(R.roi*100,2), '%/年', '年净收益 ÷ 投资') +
+    kpi('NPV（'+f(i.life,0)+'年）', f(R.npv/10000,1), '万元', '折现率 '+f(i.disc*100,1)+'%', R.npv>0?'hi':'warn') +
+    kpi('IRR', R.irr!==null? f(R.irr*100,1) : '—', '%', '内部收益率') +
+    kpi('寿命期累计净收益', f(R.cumProfit/10000,1), '万元', f(i.life,0)+' 年累计', R.cumProfit>0?'hi':'warn');
+
+  var t2 = '<thead><tr><th>经济效益 · 明细</th><th>数值</th></tr></thead><tbody>';
+  t2 += trow('设备投资（含税、含前处理）', f(i.inv,2)+' 万元');
+  t2 += trow('① 年发电收益', f(R.revElec/10000,2)+' 万元', '@ '+f(i.pElec,2)+' 元/kWh（自用替代外购/上网）');
+  t2 += trow('② 年供热收益', f(R.revHeat/10000,2)+' 万元', '@ '+f(i.pHeat,1)+' 元/GJ');
+  t2 += trow('③ 年补贴/其他收益', f(i.subsidy,2)+' 万元');
+  t2 += trow('④ 年碳收益', f(R.revCarbon/10000,2)+' 万元',
+      i.includeCarbon ? (f(R.erY,0)+' tCO₂e × '+f(i.pCarbon,0)+' 元/t') : '未计入（G 组可开启）');
+  t2 += trow('年收益合计 ①+②+③+④', f(R.revTotal/10000,2)+' 万元');
+  t2 += trow('⑤ 年气费', '−'+f(R.costCH4/10000,2)+' 万元', f(R.yCH4,0)+' Nm³ × '+f(i.pCH4,2)+' 元/Nm³');
+  t2 += trow('⑥ 年水费', '−'+f(R.costWater/10000,3)+' 万元');
+  t2 += trow('⑦ 年运维费', '−'+f(R.opex/10000,2)+' 万元', '@ 投资 × '+f(i.opexRate*100,1)+'%/年');
+  t2 += trow('年成本合计 ⑤+⑥+⑦', '−'+f(R.costTotal/10000,2)+' 万元');
+  t2 += '<tr style="border-top:2px solid #e2e9f0"><td><b>年净收益</b></td><td class="mono"><b>'+f(R.netAnnual/10000,2)+' 万元</b></td></tr>';
+  t2 += trow('静态回收期', isFinite(R.payback)? f(R.payback,2)+' 年' : '∞（年净收益≤ 0）', '投资 ÷ 年净收益');
+  t2 += trow('回收期（含碳 / 不含碳）', (isFinite(R.payback)?f(R.payback,2):'∞')+' / '+(isFinite(R.paybackNoC)?f(R.paybackNoC,2):'∞')+' 年', '不含碳＝仅发电+供热+补贴');
+  t2 += trow('动态回收期（折现）', (R.discPayback!==null? f(R.discPayback,2)+' 年' : '>'+f(i.life,0)+' 年'));
+  t2 += trow('NPV（'+f(i.life,0)+'年 @ '+f(i.disc*100,1)+'%）', f(R.npv/10000,2)+' 万元');
+  t2 += trow('IRR', (R.irr!==null? f(R.irr*100,2)+' %' : '无解'));
+  t2 += trow('寿命期累计净收益', f(R.cumProfit/10000,2)+' 万元');
+  t2 += '</tbody>';
+  $('tblEconInv').innerHTML = t2;
+
+  /* 敏感性：气价（行）× 电价（列）→ 静态回收期 */
+  var gasList = [0, 1.0, 2.0, 3.2, 4.0];
+  var elecList = [0.55, 0.70, 0.85];
+  var sens = '<thead><tr><th>气价 ↓ / 电价 →</th>' +
+    elecList.map(function(e){ return '<th>'+f(e,2)+' 元/kWh</th>'; }).join('') + '</tr></thead><tbody>';
+  gasList.forEach(function(g){
+    var isCur = Math.abs(g - i.pCH4) < 1e-9;
+    sens += '<tr><td>'+f(g,2)+' 元/Nm³'+(isCur?' <b>（当前）</b>':'')+'</td>';
+    elecList.forEach(function(e){
+      var net = R.revHeat + R.subsidy + R.revCarbon + R.yMWh*1000*e - R.yCH4*g - R.costWater - R.opex;
+      var pb = net > 0 ? R.inv/net : Infinity;
+      var cur = isCur && Math.abs(e - i.pElec) < 1e-9;
+      sens += '<td class="mono">'+(isFinite(pb)? f(pb,1) : '∞')+(cur?' <b>←</b>':'')+'</td>';
+    });
+    sens += '</tr>';
+  });
+  sens += '</tbody>';
+  $('tblSens').innerHTML = sens;
+  $('econNote').innerHTML =
+    '<b>经济效益口径说明（2026-10-15 老唐确认）：</b>投资按「整套装置<u>不含税 172.57 万元</u>（含前处理；合同含税 195 万）」计入；'
+    + '收益 = 年发电量×电价（自用替代外购电，或上网电价）+ 年可供热量×热价 + 补贴'
+    + (i.includeCarbon ? ' + <b>年碳收益</b>（减排量×碳价）' : '（碳收益未计入）') + '；'
+    + '成本 = 年气费 + 年水费 + 年运维费（按投资额 '+f(i.opexRate*100,1)+'%/年，含人工/耗材/大修）；'
+    + '寿命期 '+f(i.life,0)+' 年、折现率 '+f(i.disc*100,1)+'%、发电按 '+f(i.pElec,2)+' 元/kWh 计（均经老唐确认）。'
+    + '全局不加年衰减、不考虑通胀与税。'
+    + '<br><b>关键敏感点：</b>回收期几乎由「气价」与「碳价」共同决定——'
+    + '若原料为<b>自产沼气/放空气（近零成本，气价填 0）</b>，回收期可降至 3~4 年（不含碳）';
+    + '若叠加碳收益（当前 '+f(i.pCarbon,0)+' 元/tCO₂e → '+f(R.revCarbon/10000,2)+' 万元/年），回收期进一步降到 <b>'
+    + (isFinite(R.payback)? f(R.payback,1) : '∞') + ' 年</b>；'
+    + '若按外购天然气 3.20 元/Nm³ 计，则需 20 年以上。请按真实原料成本与碳价填写。';
+
+  /* --- 校验行 --- */
+  var c = '<thead><tr><th>校验项</th><th>数值</th></tr></thead><tbody>';
+  c += trow('甲烷理论反推 vs 实际取值', f(R.VCH4Theory,2)+' / '+f(R.VCH4,2)+' Nm³/h',
+      (R.VCH4 > R.VCH4Theory ? '实际偏高（偏乐观）' : '实际偏低（偏保守）'));
+  c += trow('氢耗体积校核', f(R.VH2/R.mH2,4)+' Nm³/kg', '理论 1/0.0899 = 11.1235');
+  c += trow('重整配气·自产 / 外供蒸汽', f(R.steamSelf,2)+' / '+f(R.steamExt,2)+' kg/h',
+      i.heatMode==='auto' ? '自热耦合：不外通蒸汽' : '外供蒸汽模式');
+  c += trow('重整器加热（'+ (R.isBurner ? '内置燃烧器' : '催化部分氧化') +'）',
+      R.isBurner ? '燃料气间接加热·空气不进工艺气'
+                 : (f(R.vO2,2)+' Nm³/h O₂' + (i.oxid==='air' ? '（空气 '+f(R.vAir,2)+'，含 N₂ '+f(R.vN2,2)+'）' : '')),
+      R.isBurner ? '协议口径' : '对比口径（催化部分氧化供热）');
+  c += trow('水账校核（外供蒸汽 − 回收产水）', f(R.steamExt-R.mH2ORecov,2)+' kg/h', '净补水下限 0');
+  c += trow('进堆氢浓度（参考）', '纯化前 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%',
+      R.yH2deN>=0.70 ? '满足协议 ≥70%（体积）、CO<10 ppm' : '⚠️ 低于协议 ≥70%，需增脱氮');
+  c += trow('热水热平衡校核', f(R.heatGJ,4)+' GJ/h', '@ η_hex='+f(i.etaHex,2)+' / ΔT='+f(i.Tout-i.Tin,0)+' K');
+  c += '</tbody>';
+  $('tblCheck').innerHTML = c;
+
+  /* --- 反算 --- */
+  var rv = calcReverse(i);
+  if (i.rmode !== 'off') {
+    $('revSec').style.display = '';
+    var t = '<thead><tr><th>目标</th><th>结果</th></tr></thead><tbody>';
+    if (i.rmode === 'P') {
+      var rp = calcCore(Object.assign({}, i, {P: i.tgtP}));
+      t += trow('目标电功率', f(i.tgtP,1)+' kW');
+      t += trow('需氢耗', f(rp.mH2,2)+' kg/h ≈ '+f(rp.VH2,1)+' Nm³/h');
+      t += trow('需甲烷耗', f(rp.VCH4,2)+' Nm³/h ≈ '+f(rp.mCH4,2)+' kg/h');
+      t += trow('对应余热规模（按同比例）', f(rp.Quse * (i.tgtP/i.P || 1),1)+' kW', '提示：余热按功率等比缩放');
+      t += trow('CO₂ 年排放', f(rp.yCO2,1)+' t/年');
+    } else {
+      t += trow('目标热水产量', f(i.tgtV,2)+' m³/h', '@ ΔT '+f(i.Tout-i.Tin,0)+' K');
+      t += trow('所需可用余热功率 Q', f(rv.reqQ,1)+' kW', '含 η_hex='+f(i.etaHex,2));
+      t += trow('对应 600℃ 蒸汽量', f(rv.reqSteam,3)+' t/h', '按 3516 kJ/kg');
+    }
+    t += '</tbody>';
+    $('tblRev').innerHTML = t;
+  } else {
+    $('revSec').style.display = 'none';
+  }
+
+  /* --- 脚注 --- */
+  $('foot').innerHTML =
+    '工艺：蒸汽重整制氢（内置燃烧器供热·协议口径）· 重整用汽由反应过程自产、不外供蒸汽。<br>'+
+    '（可选对比：催化部分氧化·配空气入床）<br>'+
+    '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）；碳资产口径参《国内三气源×华森 PEMFC 路线·适配度与效益速查》。<br>'+
+    '氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'+
+    '<b>免责说明：</b>本工具为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'+
+    '甲烷电/气比 r 默认 5 kW/Nm³ 为经验值，<b>尚待实测复核</b>。正式报价/合同请以实测数据与厂家样本为准。<br>'+
+    '本页为纯静态页面，离线可用，不采集任何数据。';
+  window.__LAST = { i:i, R:R };
+}
+
+/* --- 复制结果文本 --- */
+function buildText(){
+  var L = window.__LAST; if(!L) return '';
+  var i = L.i, R = L.R, o = [];
+  o.push('【甲烷重整制氢 · 燃料电池热电联供 测算结果】');
+  o.push('输入：P='+f(i.P,1)+'kW, η='+(i.eta*100).toFixed(1)+'%, h='+f(i.h,0)+'h, r='+f(i.r,2)+' kW/Nm³, 回收率='+(i.recov*100).toFixed(0)+'%');
+  o.push('— 核心 —');
+  o.push('氢耗：'+f(R.mH2,2)+' kg/h ≈ '+f(R.VH2,1)+' Nm³/h');
+  o.push('甲烷耗：'+f(R.VCH4,2)+' Nm³/h ≈ '+f(R.mCH4,2)+' kg/h');
+  o.push('全链路效率：'+(R.etaAll*100).toFixed(1)+'%'+(R.etaAll>0.5?' ⚠ 偏高（气电比偏乐观）':''));
+  o.push('— 水账（净耗水）—');
+  o.push('理论产水：'+f(R.mH2OTheory,2)+' kg/h；回收 '+f(R.mH2ORecov,2)+' L/h；产水率 '+f(R.waterRate,2)+' kg/kWh');
+  o.push('重整配气：蒸汽需求 '+f(R.steamNeed,2)+' kg/h（'+ (i.heatMode==='auto'
+        ? '自热耦合 · 自产 '+f(R.steamSelf,2)+' / 外供 '+f(R.steamExt,2)+' kg/h'
+        : '外供蒸汽（外部锅炉）') +'）；净补水 '+f(R.netMakeup,2)+' kg/h');
+  o.push('重整器加热：'+ (R.isBurner ? '内置燃烧器（烧部分燃料气·协议口径）' : '催化部分氧化（配空气入床）'));
+  if (!R.isBurner) {
+    o.push('氧化剂：'+ (i.oxid==='air' ? '空气' : (i.oxid==='o2' ? '纯氧' : '不配')) +
+          '，O₂/C='+f(i.oc,2)+' → O₂ '+f(R.vO2,2)+' Nm³/h' +
+          (i.oxid==='air' ? '；空气 '+f(R.vAir,2)+' Nm³/h（含 N₂ '+f(R.vN2,2)+'）' : ''));
+  }
+  o.push('进堆氢浓度（参考）：纯化前干基 '+f(R.yH2raw*100,1)+'% → 脱氮后 '+f(R.yH2deN*100,1)+'%（协议要求 ≥70%；沼气 CH₄='+f(i.ch4f,0)+'%）');
+  o.push('— 余热 —');
+  o.push('可用余热 '+f(R.Qavail,1)+' kW → 有效 '+f(R.Quse,1)+' kW；热水 '+f(R.Vhot,2)+' m³/h（理论 '+f(R.VhotTheory,2)+'）');
+  o.push('— 碳排放 —');
+  o.push('CO₂ '+f(R.mCO2,2)+' kg/h；年 '+f(R.yCO2,1)+' t（烟囮直排，生物源碳另计）');
+  o.push('— 碳资产（气源：'+((GAS_PRESETS[i.gasType]&&GAS_PRESETS[i.gasType].label)||'自定义')+'）—');
+  o.push('基准线 '+ (i.baseMode==='flare'?'火炬燃烧':(i.baseMode==='vent'?'直排放空':'无'))
+        + '；碳属性 '+ (R.isFossilC?'化石源':'生物源') + '；GWP '+f(i.gwp,1));
+  o.push('减排拆解（tCO₂e/年）：基准线 '+f(R.beCH4*i.h,1)+' + 替代电网 '+f(R.gridAvoid*i.h,1)
+        + ' − 项目排放 '+f(R.peCH4*i.h,1) + ' = 净减排 '+f(R.erY,1));
+  o.push('年碳收益 '+f(R.carbonRevY/10000,2)+' 万元（@ '+f(i.pCarbon,0)+' 元/tCO₂e）；计入期 '+f(i.creditYears,0)+' 年累计 '+f(R.carbonCum,1)+' tCO₂e；碳资产现值 '+f(R.carbonNPV/10000,2)+' 万元');
+  o.push('减排强度 '+f(R.erIntensity,3)+' kgCO₂e/kWh；碳收益占年收益 '+f(R.carbonShare*100,1)+'%'+(i.includeCarbon?'（已计入经济评价）':'（未计入）'));
+  o.push('— 经济性 —');
+  o.push('年发电 '+f(R.yMWh,1)+' MWh；年气费 '+f(R.costCH4/10000,2)+' 万元；年水费 '+f(R.costWater/10000,3)+' 万元');
+  o.push('单位电成本 '+f(R.unitCost,3)+' 元/kWh（未抵扣热收益）｜抵扣后 '+f(R.unitCostNetHeat,3)+' 元/kWh');
+  o.push('— 经济效益（投资 '+f(i.inv,1)+' 万元不含税·含前处理）—');
+  o.push('年收益：发电 '+f(R.revElec/10000,2)+' 万 + 供热 '+f(R.revHeat/10000,2)+' 万 + 补贴 '+f(i.subsidy,2)+' 万 + 碳 '+f(R.revCarbon/10000,2)+' 万 = '+f(R.revTotal/10000,2)+' 万元');
+  o.push('年成本：气 '+f(R.costCH4/10000,2)+' 万 + 水 '+f(R.costWater/10000,3)+' 万 + 运维 '+f(R.opex/10000,2)+' 万 = '+f(R.costTotal/10000,2)+' 万元');
+  o.push('年净收益 '+f(R.netAnnual/10000,2)+' 万元；静态回收期 '+ (isFinite(R.payback)? f(R.payback,1)+' 年' : '∞') +
+         '（不含碳 '+ (isFinite(R.paybackNoC)? f(R.paybackNoC,1)+' 年':'∞') +'）' +
+         '；ROI '+f(R.roi*100,2)+'%/年；NPV '+f(R.npv/10000,1)+' 万元；IRR '+ (R.irr!==null? f(R.irr*100,1)+'%' : '无解'));
+  o.push('（工具：DESS-Calc · 估算参考，非报价依据）');
+  return o.join('\n');
+}
+$('btnCopy').onclick = function(){
+  var t = buildText();
+  var done = function(){ var el=$('copied'); el.style.display='inline';
+    setTimeout(function(){ el.style.display='none'; },1800); };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(t).then(done, function(){ fallback(t, done); });
+  } else { fallback(t, done); }
+};
+function fallback(t, done){
+  var ta = document.createElement('textarea');
+  ta.value = t; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch(e){ alert('复制失败，请手动选中以下文本：\n\n'+t); }
+  document.body.removeChild(ta);
+}
+/* --- 输出报告：新窗口生成含「输入参数 + 测算结果」的完整报告，可直接打印 / 另存 PDF --- */
+var RADIO_LABEL = {heatSrc:'重整器加热', oxid:'氧化剂', heatMode:'重整供热', qmode:'余热输入方式',
+  gwpPick:'GWP 口径', carbonType:'碳属性', rmode:'反算模式'};
+var CHECK_LABEL = {countGrid:'计入替代电网减排', includeCarbon:'碳收益计入经济评价'};
+var REPORT_CSS = [
+  '.report{padding:6px 0 40px}',
+  '.rep-head{border-bottom:2px solid var(--brand);padding:0 0 12px;margin:0 0 6px}',
+  '.rep-head h1{font-size:20px;margin:0 0 8px}',
+  '.rep-meta{font-size:12px;color:var(--muted);line-height:1.7}',
+  'table.rep-in{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}',
+  'table.rep-in th{text-align:left;background:#f2f8f6;color:#0b7f6e;padding:6px 10px;border:1px solid var(--line);font-size:12.5px}',
+  'table.rep-in td{padding:5px 10px;border:1px solid var(--line)}',
+  'table.rep-in td.k{width:52%;color:#33414f}',
+  'table.rep-in td.v{font-variant-numeric:tabular-nums;font-weight:600}',
+  '.rep-actions{position:fixed;top:12px;right:14px;display:flex;gap:8px;z-index:99}',
+  '.rep-actions button{box-shadow:0 2px 10px rgba(16,36,58,.12)}',
+  '@media print{.rep-actions{display:none!important}}'
+].join('\n');
+
+function buildInputSections(){
+  var res = [], groups = document.querySelectorAll('.col-in details.grp');
+  for (var gi=0; gi<groups.length; gi++){
+    var g = groups[gi], sm = g.querySelector('summary'), title='';
+    if (sm){
+      var badge = sm.querySelector('.badge');
+      title = (sm.textContent||'').trim();
+      if (badge) title = title.replace((badge.textContent||'').trim(),'').replace(/[（(]\s*[）)]/g,'').trim();
+    }
+    var items = [];
+    var rows = g.querySelectorAll('.row');
+    for (var ri=0; ri<rows.length; ri++){
+      var row = rows[ri];
+      if (row.style && row.style.display === 'none') continue;
+      var lab = row.querySelector('label'), inps = row.querySelectorAll('input,select');
+      if (!lab || !inps.length) continue;
+      var first = (lab.firstChild && lab.firstChild.nodeType===3) ? lab.firstChild.textContent : '';
+      var name = (first||'').trim() || (lab.textContent||'').trim();
+      var vals = [];
+      for (var ii=0; ii<inps.length; ii++){
+        var inp = inps[ii];
+        vals.push(inp.tagName==='SELECT'
+          ? (((inp.options[inp.selectedIndex]||{}).text)||inp.value)
+          : inp.value);
+      }
+      items.push([name, vals.join(' / ')]);
+    }
+    var rls = g.querySelectorAll('.radio-line');
+    for (var qi=0; qi<rls.length; qi++){
+      var rl = rls[qi];
+      if (rl.style && rl.style.display === 'none') continue;
+      var cb = rl.querySelector('input[type=checkbox]');
+      if (cb){
+        items.push([CHECK_LABEL[cb.id] || '选项', cb.checked ? '是' : '否']);
+        continue;
+      }
+      var ck = rl.querySelector('input:checked');
+      if (!ck) continue;
+      var pl = ck.closest ? ck.closest('label') : null;
+      items.push([RADIO_LABEL[ck.name] || '选项', pl ? pl.textContent.trim() : ck.value]);
+    }
+    if (items.length) res.push({title:title, items:items});
+  }
+  return res;
+}
+
+function buildReportHTML(){
+  var css='', st = document.getElementsByTagName('style');
+  for (var i=0;i<st.length;i++) css += st[i].innerHTML + '\n';
+  css += REPORT_CSS;
+  var secs = buildInputSections(), inHTML='';
+  for (var s=0;s<secs.length;s++){
+    inHTML += '<table class="rep-in"><thead><tr><th colspan="2">'+secs[s].title+'</th></tr></thead><tbody>';
+    for (var j=0;j<secs[s].items.length;j++){
+      inHTML += '<tr><td class="k">'+secs[s].items[j][0]+'</td><td class="v">'+secs[s].items[j][1]+'</td></tr>';
+    }
+    inHTML += '</tbody></table>';
+  }
+  var clone = document.getElementById('out').cloneNode(true);
+  var ft = clone.querySelector('#foot'); if (ft) ft.innerHTML='';
+  var al = clone.querySelector('#alertAll'); if (al && !/show/.test(al.className)) al.innerHTML='';
+  var outHTML = clone.innerHTML;
+  var now = new Date().toLocaleString('zh-CN', {hour12:false});
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<title>测算报告 · 甲烷重整制氢 · 燃料电池热电联供</title><style>'+css+'</style></head><body>'
+    + '<div class="wrap report">'
+    + '<div class="rep-actions no-print"><button class="primary" onclick="window.print()">打印 / 保存为 PDF</button>'
+    + '<button onclick="window.close()">关闭</button></div>'
+    + '<div class="rep-head"><h1>甲烷重整制氢 · 燃料电池热电联供 — 测算报告</h1>'
+    + '<div class="rep-meta">生成时间：'+now+' ｜ 工具：DESS-Calc（工业版 · 纯前端离线）<br>'
+    + '口径来源：安徽华森「百千瓦燃料电池分布式热电联供」技术协议 + 任务口径表（2026-10-15 核定）</div></div>'
+    + '<h2 class="sec">一、输入参数</h2>' + inHTML
+    + '<h2 class="sec">二、测算结果</h2>' + outHTML
+    + '<footer>氢 LHV 33.3 kWh/kg｜甲烷 LHV 9.94 kWh/Nm³｜1 kg 氢 → 9 kg 水｜1 Nm³ 甲烷 → 1.964 kg CO₂。<br>'
+    + '<b>免责说明：</b>本报告为工程估算参考，结果受气电比 r、回收率、换热效率等参数假设影响；'
+    + '甲烷电/气比 r 默认 5 kW/Nm³ 为经验值，尚待实测复核。正式报价/合同请以实测数据与厂家样本为准。</footer>'
+    + '</div></body></html>';
+}
+
+function outputReport(){
+  render();
+  var w = window.open('', '_blank');
+  if (!w || !w.document){ window.print(); return; }
+  w.document.open();
+  w.document.write(buildReportHTML());
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ try{ w.print(); }catch(e){} }, 450);
+}
+$('btnPrint').onclick = outputReport;
+$('btnCalc').onclick = render;
+$('btnReset').onclick = function(){
+  Object.keys(DEFAULTS).forEach(function(k){ if($(k)) $(k).value = DEFAULTS[k]; });
+  document.querySelector('input[name=qmode][value=Q]').checked = true;
+  document.querySelector('input[name=rmode][value=off]').checked = true;
+  document.querySelector('input[name=heatMode][value=auto]').checked = true;
+  document.querySelector('input[name=heatSrc][value=burner]').checked = true;
+  document.querySelector('input[name=oxid][value=air]').checked = true;
+  $('gasType').value = 'biogas';
+  $('baseMode').value = 'vent';
+  document.querySelector('input[name=gwpPick][value=100]').checked = true;
+  document.querySelector('input[name=carbonType][value=biogenic]').checked = true;
+  $('countGrid').checked = true;
+  $('includeCarbon').checked = true;
+  toggleRows(); render();
+};
+
+function toggleRows(){
+  var qm = document.querySelector('input[name=qmode]:checked').value;
+  $('rowQ').style.display = qm==='Q' ? '' : 'none';
+  $('rowS').style.display = qm==='S' ? '' : 'none';
+  $('rowSteamT').style.display = qm==='S' ? '' : 'none';
+  var rm = document.querySelector('input[name=rmode]:checked').value;
+  $('rowRP').style.display = rm==='P' ? '' : 'none';
+  $('rowRV').style.display = rm==='V' ? '' : 'none';
+  var hm = (document.querySelector('input[name=heatMode]:checked')||{}).value || 'auto';
+  $('rowSelfSteam').style.display = hm==='auto' ? '' : 'none';
+  var hs = (document.querySelector('input[name=heatSrc]:checked')||{}).value || 'burner';
+  var cpo = hs === 'cpo';
+  $('rowOxid').style.display = cpo ? '' : 'none';
+  var ox = (document.querySelector('input[name=oxid]:checked')||{}).value || 'air';
+  $('rowOC').style.display = (cpo && ox!=='none') ? '' : 'none';
+  // 碳资产：化石源碳属性 + 基准线火炬行 联动
+  var bm = ($('baseMode')||{}).value || 'vent';
+  if ($('rowFlareEff')) $('rowFlareEff').style.display = bm==='flare' ? '' : 'none';
+  var gt = ($('gasType')||{}).value || 'biogas';
+  if ($('gasNote')) $('gasNote').innerHTML = (GAS_PRESETS[gt] && GAS_PRESETS[gt].note) || '';
+}
+
+/* 输入变化即时重算 */
+document.addEventListener('input', function(ev){
+  if (ev.target.closest && ev.target.closest('.col-in')) render();
+});
+document.addEventListener('change', function(ev){
+  if (ev.target.id === 'gasType'){
+    var p = GAS_PRESETS[ev.target.value];
+    if (p && ev.target.value !== 'custom'){
+      $('ch4f').value = p.ch4f;
+      $('baseMode').value = p.baseMode;
+      var ct = document.querySelector('input[name=carbonType][value='+p.carbonType+']');
+      if (ct) ct.checked = true;
+    }
+    toggleRows(); render(); return;
+  }
+  if (ev.target.name === 'gwpPick'){ $('gwp').value = (ev.target.value === '20') ? 84 : 28; toggleRows(); render(); return; }
+  if (ev.target.id === 'baseMode'){ toggleRows(); render(); return; }
+  if (ev.target.name === 'qmode' || ev.target.name === 'rmode' || ev.target.name === 'heatMode' || ev.target.name === 'heatSrc' || ev.target.name === 'oxid'){ toggleRows(); render(); }
+});
+
+toggleRows();
+render();
+</script>
+</body>
+</html>
