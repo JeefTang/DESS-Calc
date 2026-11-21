@@ -211,6 +211,10 @@ def page(lang, slug, title, desc, body, extra_head=""):
 <meta property="og:title" content="{full_title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{canon}">
+<meta property="og:image" content="{BASE}/assets/img/og-huasen.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0b1f1a">
 <link rel="icon" href="{r}assets/img/huasen-logo.png">
 <link rel="stylesheet" href="{r}assets/css/site.css">
@@ -1149,7 +1153,7 @@ def en_home():
   </div>
 </section>
 '''
-    return page("en", "", "Anhui Huasen Hydrogen Energy", "Anhui Huasen Hydrogen Energy: methane reforming hydrogen CHP for biogas, coal mine gas, oilfield associated gas and city natural gas; biogas-driven heat-pump air conditioning (BHP); distributed CCHP solutions.", body)
+    return page("en", "", "Anhui Huasen Hydrogen Energy — Distributed CCHP", "Anhui Huasen Hydrogen Energy: methane reforming hydrogen CHP for biogas, coal mine gas, oilfield associated gas and city natural gas; biogas-driven heat-pump air conditioning (BHP); distributed CCHP solutions.", body)
 
 
 def en_chp():
