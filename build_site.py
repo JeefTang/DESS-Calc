@@ -378,7 +378,7 @@ def zh_home():
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)">
         <h3 style="color:#fff">装备制造</h3><p style="color:#b8ccc4">安徽海普克电气有限公司承担撬装集成与成套制造，西门子 ICP 体系、ISO 三体系与 CE 认证。</p></div>
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)">
-        <h3 style="color:#fff">技术团队</h3><p style="color:#b8ccc4">清华大学、天津大学、大连理工大学博士领衔，覆盖工艺、装备、控制与调试。</p></div>
+        <h3 style="color:#fff">技术团队</h3><p style="color:#b8ccc4">清华大学、天津大学、中科院大连化物所博士领衔，覆盖工艺、装备、控制与调试。</p></div>
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)">
         <h3 style="color:#fff">商业模型</h3><p style="color:#b8ccc4">设备成套 / EPC、EMC 合同能源管理、EaaS 能源即服务，按业主偏好选择。</p></div>
     </div>
@@ -892,7 +892,7 @@ def zh_about():
         </tbody>
       </table>
     </div>
-    <p class="table-note">技术团队由清华大学、天津大学、大连理工大学博士领衔，覆盖工艺包设计、装备集成、系统控制全链条。</p>
+    <p class="table-note">技术团队由清华大学、天津大学、中科院大连化物所博士领衔，覆盖工艺包设计、装备集成、系统控制全链条。</p>
   </div>
 </section>
 
@@ -1112,7 +1112,7 @@ def en_home():
     <div class="grid g4">
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)"><h3 style="color:#fff">Process package</h3><p style="color:#b8ccc4">Reforming process, catalyst and system design developed with SINOPEC Dalian Research Institute of Petroleum and Petrochemicals.</p></div>
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)"><h3 style="color:#fff">Manufacturing</h3><p style="color:#b8ccc4">Skid integration and packaging by Anhui Hopco Electric — Siemens ICP, ISO 9001/14001/45001 and CE.</p></div>
-      <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)"><h3 style="color:#fff">Engineering team</h3><p style="color:#b8ccc4">PhD-led team from Tsinghua, Tianjin and Dalian University of Technology across process, equipment and controls.</p></div>
+      <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)"><h3 style="color:#fff">Engineering team</h3><p style="color:#b8ccc4">PhD-led team from Tsinghua, Tianjin and Dalian Institute of Chemical Physics, CAS across process, equipment and controls.</p></div>
       <div class="card" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)"><h3 style="color:#fff">Business models</h3><p style="color:#b8ccc4">Equipment / EPC, EMC shared savings, or EaaS — chosen to fit the owner’s balance sheet.</p></div>
     </div>
     <div class="stat-band" style="margin-top:30px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)">
@@ -1599,7 +1599,7 @@ def en_about():
         </tbody>
       </table>
     </div>
-    <p class="table-note">The technical team is led by PhDs from Tsinghua University, Tianjin University and Dalian University of Technology, covering process design, equipment integration and control.</p>
+    <p class="table-note">The technical team is led by PhDs from Tsinghua University, Tianjin University and Dalian Institute of Chemical Physics, CAS, covering process design, equipment integration and control.</p>
   </div>
 </section>
 
