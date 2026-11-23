@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>沼气工程计算器（7 个） | 安徽华森氢能源科技</title>
-<meta name="description" content="七个免费沼气工程计算器：发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、沼气热泵空调 BHP。纯前端离线可用。">
+<meta name="description" content="七个免费沼气工程计算器：发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP（沼气/煤层气/伴生气/天然气）。纯前端离线可用。">
 <link rel="canonical" href="https://jeeftang.github.io/DESS-Calc/tools/biogas.html">
 
 
@@ -85,7 +85,7 @@
       <button class="tab-btn" data-tab="tool4">4 · 提纯收率</button>
       <button class="tab-btn" data-tab="tool5">5 · 项目经济性</button>
       <button class="tab-btn" data-tab="tool6">6 · 氢燃料电池 CHP</button>
-      <button class="tab-btn" data-tab="tool7">7 · 沼气热泵空调 BHP</button>
+      <button class="tab-btn" data-tab="tool7">7 · 燃气热泵空调 BHP</button>
     </div>
 
     <div class="tab-panel active" id="tool1">
@@ -300,14 +300,14 @@
 
     <div class="tab-panel" id="tool7">
       <div class="tool-head">
-        <div><p class="eyebrow">工具 07</p><h2>沼气热泵空调 BHP：不靠电网的制冷</h2></div>
+        <div><p class="eyebrow">工具 07</p><h2>燃气热泵空调 BHP：不靠电网的制冷</h2></div>
         <div class="tool-actions"><button class="btn ghost sm" onclick="window.print()">打印 / 存为 PDF</button><button class="btn sm" onclick="copySummary('tool7')">复制结果</button></div>
       </div>
       <div class="calc">
         <div class="calc-form">
           <div class="field"><label for="t7_cool">所需制冷负荷（kW）</label><input id="t7_cool" type="number" value="120" step="10" min="0"><div class="hint">办公、化验与员工宿舍；不含工艺冷却。</div></div>
           <div class="field"><label for="t7_cop">制冷 COP（燃气低热值口径）</label><input id="t7_cop" type="number" value="1.0" step="0.05" min="0.5" max="1.6"><div class="hint">发动机直驱类：0.95–1.15，随环温与部分负荷变化。</div></div>
-          <div class="field"><label for="t7_ch4pct">燃料气甲烷含量（%）</label><input id="t7_ch4pct" type="number" value="97" step="1" min="50" max="99"><div class="hint">标准燃料为 97% 生物天然气；原沼气要折减功率并缩短保养间隔。</div></div>
+          <div class="field"><label for="t7_ch4pct">燃料气甲烷含量（%）</label><input id="t7_ch4pct" type="number" value="97" step="1" min="50" max="99"><div class="hint">机组按 97% 甲烷标定；提纯沼气、浓缩煤层气、脱重烃伴生气与天然气都按实际甲烷含量折算。原沼气要折减功率并缩短保养间隔。</div></div>
           <div class="field"><label for="t7_load">平均负荷率（%）</label><input id="t7_load" type="number" value="85" step="1" min="10" max="100"></div>
           <div class="field"><label for="t7_hours">年运行小时</label><input id="t7_hours" type="number" value="8000" step="100" min="0" max="8760"></div>
           <div class="field"><label for="t7_capex">设备单价（马币/kW 冷量）</label><input id="t7_capex" type="number" value="2500" step="100" min="0"><div class="hint">参考 RM 2,500/kW 冷量，不含安装。</div></div>
@@ -360,7 +360,7 @@
 <footer class="site">
   <div class="wrap" style="padding:26px 0">
     <div style="display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center">
-      <div><b style="color:#fff">安徽华森氢能源科技有限公司</b><div class="small" style="color:#9fb4c0">沼气 / 煤层气 / 油田伴生气 / 城市天然气 · 重整制氢热电联产 · BHP 沼气源热泵空调</div></div>
+      <div><b style="color:#fff">安徽华森氢能源科技有限公司</b><div class="small" style="color:#9fb4c0">沼气 / 煤层气 / 油田伴生气 / 城市天然气 · 重整制氢热电联产 · BHP 燃气热泵空调</div></div>
       <div class="small" style="color:#9fb4c0">电话 132 5294 9897　·　<a href="../contact.html" style="color:#8fe0b8">联系我们</a></div>
     </div>
     <div class="copy" style="margin-top:14px"><span>© 2026 安徽华森氢能源科技有限公司</span><span>计算结果为参考值，以气样分析、技术协议与厂家保证书为准。</span></div>
