@@ -85,7 +85,7 @@ def header(lang, slug, depth):
     return f'''<header class="site-header">
   <div class="wrap nav-bar">
     <a class="brand" href="{lr}index.html" aria-label="{'安徽华森氢能源科技' if lang=='zh' else 'Anhui Huasen Hydrogen Energy'}">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:11px;background:#0b1f1a;padding:4px"><img src="{r}assets/img/huasen-logo.png" alt="{'华森氢能 logo' if lang=='zh' else 'Huasen Hydrogen logo'}" style="height:38px;width:auto"></span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:11px;background:#0b1f1a;padding:4px"><img src="{r}assets/img/huasen-logo-white.png" alt="{'华森氢能 logo' if lang=='zh' else 'Huasen Hydrogen logo'}" style="height:38px;width:auto"></span>
       <span class="bt"><b>{b1}</b><span>{b2}</span></span>
     </a>
     <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
@@ -136,7 +136,7 @@ def footer(lang, depth):
     <div class="fgrid">
       <div>
         <a class="brand" href="{lr}index.html">
-          <img src="{r}assets/img/huasen-logo.png" alt="Huasen Hydrogen" style="height:44px">
+          <img src="{r}assets/img/huasen-logo-white.png" alt="Huasen Hydrogen" style="height:44px">
           <span class="bt"><b>{BRAND[lang][0]}</b><span>{BRAND[lang][1]}</span></span>
         </a>
         <p class="small" style="color:#9fb6ac;margin:10px 0 0;max-width:340px">{FOOT_DESC[lang]}</p>
@@ -216,7 +216,8 @@ def page(lang, slug, title, desc, body, extra_head=""):
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0b1f1a">
-<link rel="icon" href="{r}assets/img/huasen-logo.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{r}assets/img/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="{r}assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="{r}assets/css/site.css">
 <script src="{r}assets/js/site.js" defer></script>
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
