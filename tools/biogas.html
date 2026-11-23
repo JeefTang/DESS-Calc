@@ -35,7 +35,7 @@
   <div class="wrap">
     <p class="eyebrow">工程测算工具</p>
     <h1>CHP 热电联产与燃气空调测算</h1>
-    <p class="lead">默认进入氢燃料电池 CHP（分布式燃气重整制氢热电联供），第二个是燃气热泵空调 BHP；沼气发电与提纯、内燃机发电作为补充选项放在后面。内燃机的容量选型与项目经济性合并在同一页，不再单列经济性测算。公式与我们的预可研一致，假设全部摊开、可改。</p>
+    <p class="lead">默认进入氢燃料电池 CHP（分布式燃气重整制氢热电联供），第二个是燃气热泵空调 BHP；沼气发电与提纯、内燃机发电作为补充选项放在后面。内燃机的容量选型与项目经济性合并在同一页，机组价按美元计。公式与我们的预可研一致，假设全部摊开、可改。</p>
   </div>
 </section>
 
@@ -200,13 +200,15 @@
       </div>
       <div class="calc">
         <div class="calc-form">
+          <div class="field"><label for="t2_model">机组机型</label><select id="t2_model"><option value="500">500 kW</option><option value="600" selected>600 kW</option><option value="700">700 kW</option><option value="800">800 kW</option><option value="1000">1,000 kW</option><option value="">自定义功率</option></select><div class="hint">选定机型后自动带出机组出口价，标准供货范围与条款不变。</div></div>
           <div class="field"><label for="t2_kw">目标发电功率（kW）</label><input id="t2_kw" type="number" value="600" step="10" min="0"></div>
           <div class="field"><label for="t2_ch4">甲烷含量（%）</label><input id="t2_ch4" type="number" value="60" step="0.5" min="40" max="99"></div>
           <div class="field"><label for="t2_eff">发电效率（%）</label><input id="t2_eff" type="number" value="35.2" step="0.1" min="20" max="45"><div class="hint">按厂家气耗，每方甲烷约 3.50 kWh 电。</div></div>
           <div class="field"><label for="t2_load">平均负荷率（%）</label><input id="t2_load" type="number" value="85" step="1" min="10" max="100"><div class="hint">按满负荷计算气量；年耗气与年发电量按负荷率折算。</div></div>
           <div class="field"><label for="t2_hours">年运行小时</label><input id="t2_hours" type="number" value="8000" step="100" min="0" max="8760"></div>
           <div class="field" style="margin-top:24px;padding-top:18px;border-top:1px dashed #d6e2e8"><label style="color:var(--brand);letter-spacing:.02em">项目经济性</label><div class="hint">以下只影响投资与回收期，不影响上面的气量。</div></div>
-          <div class="field"><label for="t2_capex">交钥匙投资（美元/kW）</label><input id="t2_capex" type="number" value="2200" step="50" min="0"><div class="hint">机组成套 FOB 约 580–630 美元/kW（600–800 kW）；完整电站通常 1,800–2,600 美元/kW。</div></div>
+          <div class="field"><label for="t2_engine">机组出口价（美元/kW）</label><input id="t2_engine" type="number" value="391" step="1" min="0" readonly><div class="hint">含机组、控制柜、断路器柜、散热器、消音器、排烟管与燃气阀组 7 项。自定义机型时手工填。</div></div>
+          <div class="field"><label for="t2_bop">配套与安装（美元/kW）</label><input id="t2_bop" type="number" value="1600" step="50" min="0"><div class="hint">沼气预处理、余热回收、并网与变压器、土建、安装调试，1,500–1,800；只报机组填 0。</div></div>
           <div class="field"><label for="t2_tariff">电价价值（元/kWh）</label><input id="t2_tariff" type="number" value="0.65" step="0.01" min="0"><div class="hint">工商业市电 0.60–0.90；离网柴油发电 2.00–3.00。填真实能省下的成本。</div></div>
           <div class="field"><label for="t2_use">替代外购电的比例（%）</label><input id="t2_use" type="number" value="75" step="5" min="0" max="100"><div class="hint">只有自用的电量才享受完整的替代价值。</div></div>
           <div class="field"><label for="t2_fx">汇率（人民币/美元）</label><input id="t2_fx" type="number" value="7.2" step="0.01" min="1"></div>
@@ -226,7 +228,9 @@
           </div>
           <h3 style="margin-top:22px">项目经济性</h3>
           <div class="out-grid">
-            <div class="kv"><span>总投资</span><b id="t2_total_capex">—</b></div>
+            <div class="kv"><span>机组设备价（FOB）</span><b id="t2_engine_cost">—</b></div>
+            <div class="kv"><span>配套与安装</span><b id="t2_bop_cost">—</b></div>
+            <div class="kv hl"><span>总投资</span><b id="t2_total_capex">—</b></div>
             <div class="kv"><span>年发电量</span><b id="t2_gen">—</b></div>
             <div class="kv hl"><span>年收入</span><b id="t2_rev">—</b></div>
             <div class="kv"><span>年运维成本</span><b id="t2_opex">—</b></div>
@@ -238,7 +242,7 @@
             <div class="kv"><span>LCOE</span><b id="t2_lcoe">—</b></div>
           </div>
           <div class="warn" id="t2_warn"></div>
-          <p class="note">年耗气量 = 平均气量 × 年运行小时；年发电量 = 装机 × 年运行小时 × 负荷率。收入按可计价电量与给定电价计算，不含融资、土地与电网改造费用。仅作筛选，不可用于融资——同时用它检验供应商推荐的机组是否配得上你的实测气量与投资口径。</p>
+          <p class="note">机组出口价按美元计，含标准供货范围，不含预处理、余热、并网、土建与安装（另计入配套栏）。年耗气量 = 平均气量 × 年运行小时；年发电量 = 装机 × 年运行小时 × 负荷率。收入按可计价电量与给定电价计算，不含融资、土地与电网改造费用。仅作筛选，不可用于融资。</p>
         </div>
       </div>
     </div>
@@ -339,17 +343,17 @@
     <div class="warn" id="q_warn"></div>
     <div class="table-wrap" style="margin-top:26px">
       <table>
-        <thead><tr><th>机型</th><th>需纯甲烷（Nm³/h）</th><th>原气 @45%</th><th>@55%</th><th>@60%</th><th>年发电 MWh @90%</th><th>余热（kW）</th></tr></thead>
+        <thead><tr><th>机型</th><th>机组价 FOB（US$）</th><th>需纯甲烷（Nm³/h）</th><th>原气 @45%</th><th>@55%</th><th>@60%</th><th>年发电 MWh @90%</th><th>余热（kW）</th></tr></thead>
         <tbody>
-          <tr><td class="num">500 kW</td><td class="num">142</td><td class="num">316</td><td class="num">258</td><td class="num">237</td><td class="num">3,600</td><td class="num">593</td></tr>
-          <tr><td class="num">600 kW</td><td class="num">172</td><td class="num">382</td><td class="num">313</td><td class="num">287</td><td class="num">4,320</td><td class="num">718</td></tr>
-          <tr><td class="num">700 kW</td><td class="num">200</td><td class="num">444</td><td class="num">364</td><td class="num">333</td><td class="num">5,040</td><td class="num">835</td></tr>
-          <tr><td class="num">800 kW</td><td class="num">229</td><td class="num">508</td><td class="num">416</td><td class="num">381</td><td class="num">5,760</td><td class="num">954</td></tr>
-          <tr><td class="num">1,000 kW</td><td class="num">286</td><td class="num">636</td><td class="num">520</td><td class="num">477</td><td class="num">7,200</td><td class="num">1,194</td></tr>
+          <tr><td class="num">500 kW</td><td class="num">216,700</td><td class="num">142</td><td class="num">316</td><td class="num">258</td><td class="num">237</td><td class="num">3,600</td><td class="num">593</td></tr>
+          <tr><td class="num">600 kW</td><td class="num">234,700</td><td class="num">172</td><td class="num">382</td><td class="num">313</td><td class="num">287</td><td class="num">4,320</td><td class="num">718</td></tr>
+          <tr><td class="num">700 kW</td><td class="num">252,800</td><td class="num">200</td><td class="num">444</td><td class="num">364</td><td class="num">333</td><td class="num">5,040</td><td class="num">835</td></tr>
+          <tr><td class="num">800 kW</td><td class="num">288,900</td><td class="num">229</td><td class="num">508</td><td class="num">416</td><td class="num">381</td><td class="num">5,760</td><td class="num">954</td></tr>
+          <tr><td class="num">1,000 kW</td><td class="num">379,200</td><td class="num">286</td><td class="num">636</td><td class="num">520</td><td class="num">477</td><td class="num">7,200</td><td class="num">1,194</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="small" style="margin-top:14px">厂口气耗 ≈3.50 kWh/Nm³ 甲烷，按 8,000 运行小时、90% 负荷。气质不确定时按 45% 那一列选型——气不够的代价高于买大一档。</p>
+    <p class="small" style="margin-top:14px">机组价为 FOB、标准 7 项供货范围，不含预处理、余热、并网、土建与安装。厂口气耗 ≈3.50 kWh/Nm³ 甲烷，按 8,000 运行小时、90% 负荷。气质不确定时按 45% 那一列选型——气不够的代价高于买大一档。</p>
   </div>
 </section>
 

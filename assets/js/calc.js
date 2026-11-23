@@ -21,6 +21,10 @@
     d = d === undefined ? 1 : d;
     return Math.abs(x) >= 10000 ? "¥ " + nf(x / 10000, d) + " 万" : "¥ " + nf(x, 0);
   }
+  function usd(x) {
+    if (!isFinite(x)) return "—";
+    return "US$ " + nf(Math.round(x / 100) * 100, 0);
+  }
   function set(id, text) { var el = $(id); if (el) el.textContent = text; }
   function warn(id, text) {
     var el = $(id);
@@ -61,11 +65,36 @@
   }
 
   /* --------------------------------------------- tool 2 · engine sizing + economics */
+  /* Engine models — export list price, USD per unit (FOB, standard scope). */
+  var ICE_MODELS = [
+    { kw: 500, usd: 216667 },
+    { kw: 600, usd: 234722 },
+    { kw: 700, usd: 252778 },
+    { kw: 800, usd: 288889 },
+    { kw: 1000, usd: 379167 }
+  ];
+
   function tool2() {
     var kW = val("t2_kw"), ch4 = val("t2_ch4"), eff = val("t2_eff"), load = val("t2_load");
     var hours = val("t2_hours", 8000);
-    var capexPerKW = val("t2_capex", 2200), tariff = val("t2_tariff"), use = val("t2_use", 100);
+    var tariff = val("t2_tariff"), use = val("t2_use", 100);
     var fx = val("t2_fx") || 1, om = val("t2_om"), omfix = val("t2_omfix"), disc = val("t2_disc") / 100;
+
+    var modelSel = $("t2_model");
+    var modelKW = modelSel && modelSel.value !== "" ? parseFloat(modelSel.value) : NaN;
+    var enginePerKW = val("t2_engine", 391);
+    var bopPerKW = val("t2_bop", 0);
+    var engineModel = null;
+    for (var mi = 0; isFinite(modelKW) && mi < ICE_MODELS.length; mi++) {
+      if (ICE_MODELS[mi].kw === modelKW) engineModel = ICE_MODELS[mi];
+    }
+    if (engineModel) {
+      enginePerKW = engineModel.usd / engineModel.kw;
+      var engineEl = $("t2_engine");
+      if (engineEl) engineEl.value = Math.round(enginePerKW);
+    }
+    var engineCost = kW * enginePerKW;
+    var bopCost = kW * bopPerKW;
 
     var fuelKW = kW / (eff / 100);
     var flow = ch4 > 0 ? fuelKW / (ch4 / 100) / CH4_KWH_PER_NM3 : 0;
@@ -75,7 +104,7 @@
     var year = avg * hours;
 
     var gen = kW * hours * load / 100;
-    var capex = kW * capexPerKW;
+    var capex = engineCost + bopCost;
     var tariffUSD = tariff / fx;
     var revUSD = gen * (use / 100) * tariffUSD;
     var opexUSD = gen * om + omfix;
@@ -96,7 +125,9 @@
     set("t2_energy", nf(fuelKW, 0) + " kW");
     set("t2_year", nf(year / 1000000, 2) + " million Nm³/yr");
 
-    set("t2_total_capex", cny(capex * fx, 1) + "（US$ " + nf(capex / 10000, 0) + " 万）");
+    set("t2_engine_cost", usd(engineCost) + "（" + cny(engineCost * fx, 1) + "）");
+    set("t2_bop_cost", usd(bopCost) + "（" + cny(bopCost * fx, 1) + "）");
+    set("t2_total_capex", usd(capex) + "（" + cny(capex * fx, 1) + "）");
     set("t2_gen", nf(gen / 1000, 0) + " MWh/yr");
     set("t2_rev", cny(revUSD * fx, 1) + "/年");
     set("t2_opex", cny(opexUSD * fx, 1) + "/年");
@@ -112,7 +143,10 @@
     if (eff > 42) msgs.push("Efficiency above 42% is at the top of the range for gas engines — verify it is not a lower-heating-value claim.");
     if (netUSD <= 0) msgs.push("Negative annual net cash flow at these prices and capex — the payback never closes. Check the displaced power price, self-use share and capex scope.");
     if (use > 90) msgs.push("Assuming almost all output displaces bought power is optimistic unless the mill runs a steady 24-hour load.");
-    if (capexPerKW < 600) msgs.push("Capex below US$600/kW is likely engine-only, not a complete plant — civils, gas treatment and grid connection are usually excluded.");
+    if (isFinite(modelKW) && kW > 0 && Math.abs(kW - modelKW) / modelKW > 0.01) msgs.push("目标功率与所选机型不一致：机组价按所选的 " + modelKW + " kW 机型单价折算，建议直接改选对应机型。");
+    if (enginePerKW < 250) msgs.push("机组价低于 250 美元/kW，明显低于当前机型报价——核对是否选错机型。");
+    if (bopPerKW === 0) msgs.push("配套与安装为 0：这是机组 FOB 口径，不含沼气预处理、余热回收、并网、土建与安装。");
+    else if (enginePerKW + bopPerKW < 900) msgs.push("全站投资低于 900 美元/kW 偏紧——核查是否漏了气柜、脱硫脱水、余热与并网。");
     if (payback < 2) msgs.push("Payback under 2 years is unusual for a complete plant — check that capex includes pond cover, gas treatment, civils and grid connection.");
     warn("t2_warn", msgs.join(" "));
   }
@@ -384,6 +418,19 @@
     if (altSel) altSel.addEventListener("change", function () {
       var t = $("t7_tariff");
       if (t) t.value = altSel.value === "diesel" ? "2.20" : "0.65";
+      runAll();
+    });
+
+    var modelSel = $("t2_model");
+    if (modelSel) modelSel.addEventListener("change", function () {
+      var kw = parseFloat(modelSel.value);
+      var kwIn = $("t2_kw"), engineIn = $("t2_engine");
+      if (isFinite(kw)) {
+        if (kwIn) kwIn.value = kw;
+        if (engineIn) engineIn.readOnly = true;
+      } else if (engineIn) {
+        engineIn.readOnly = false;
+      }
       runAll();
     });
 
