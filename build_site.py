@@ -114,7 +114,7 @@ def footer(lang, depth):
         <li>商务咨询：刘洋　<a href="tel:+8613252949897">132 5294 9897</a></li>
         <li>生产基地：安徽省宣城市泾县琴溪路 18 号</li>'''
         copy = f'<span>© <span id="year">2026</span> 安徽华森氢能源科技有限公司</span><span>参数为参考值，具体以气样分析、技术协议与正式报价为准。</span>'
-        tools = f'<li><a href="{lr}tools/">CHP 工程测算工具</a></li><li><a href="{lr}tools/biogas.html">沼气工程计算器</a></li>'
+        tools = f'<li><a href="{lr}tools/">CHP 工程测算工具</a></li><li><a href="{lr}tools/biogas.html">CHP / BHP 计算器</a></li>'
     else:
         sol = f'''<li><a href="{lr}solutions/hydrogen-chp.html">Reforming hydrogen CHP</a></li>
         <li><a href="{lr}solutions/bhp.html">Gas heat-pump air-con (BHP)</a></li>
@@ -128,7 +128,7 @@ def footer(lang, depth):
         <li>Sales: Liu Yang　<a href="tel:+8613252949897">+86 132 5294 9897</a></li>
         <li>Production base: No. 18 Qinxi Road, Jing County, Xuancheng, Anhui, China</li>'''
         copy = f'<span>© <span id="year">2026</span> Anhui Huasen Hydrogen Energy Technology Co., Ltd.</span><span>Figures are indicative; project values are confirmed by gas analysis, technical agreement and formal quotation.</span>'
-        tools = f'<li><a href="{lr}tools/">CHP engineering calculators</a></li><li><a href="{lr}tools/biogas.html">Biogas calculators</a></li>'
+        tools = f'<li><a href="{lr}tools/">CHP engineering calculators</a></li><li><a href="{lr}tools/biogas.html">CHP &amp; BHP calculators</a></li>'
     return f'''<footer class="site-footer">
   <div class="wrap">
     <div class="fgrid">
@@ -1774,8 +1774,8 @@ def tools_index(lang="zh", slug="tools/", depth=1):
     en = lang == "en"
     r = rel(depth)
     title = "工程测算工具" if not en else "Engineering calculators"
-    desc = ("沼气与 CHP 工程计算器：先用简单计算器估算发电量、用气量与回收期，再用工业版、民用版做详细测算。纯前端离线可用。"
-            if not en else "Biogas and CHP engineering calculators: start with the simple calculators for output, gas use and payback, then use the industrial or residential version for detail. Pure front-end, offline.")
+    desc = ("CHP 氢燃料电池热电联产与燃气热泵空调 BHP 工程计算器：输入功率、气价与电价，几分钟出需气量、余热、投资与回收期；另附沼气发电、提纯与内燃机（可选）计算器。纯前端离线可用。"
+            if not en else "Calculators for hydrogen fuel-cell CHP and BHP gas heat-pump air conditioning: enter output, gas and power prices to get gas use, recoverable heat, capex and payback; biogas and engine options follow. Pure front-end, offline.")
     body = f'''
 <section class="page-head">
   <div class="wrap">
@@ -1789,11 +1789,11 @@ def tools_index(lang="zh", slug="tools/", depth=1):
   <div class="wrap">
     <div class="tool-grid">
       <article class="tool-card" style="grid-column:1/-1;border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,122,82,.10),var(--shadow)">
-        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">{'简单计算器 · 先算这个' if not en else 'SIMPLE CALCULATORS · START HERE'}</span>
-        <h3>{'沼气工程计算器（7 个）' if not en else 'Biogas calculators (7 tools)'}</h3>
-        <p>{'输入量不多，几分钟出结果：沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。填不全也没关系，每个计算器都用默认值先给一个数量级。' if not en else 'A handful of inputs, results in minutes: biogas power and heat, capacity sizing, mill throughput, upgrading yield, project economics, hydrogen fuel-cell CHP and BHP air conditioning. Defaults give a first-order answer even if some data is missing.'}</p>
+        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">{'CHP 测算 · 打开即在此页' if not en else 'CHP FIRST · OPENS HERE'}</span>
+        <h3>{'氢燃料电池 CHP 测算（含燃气空调 BHP）' if not en else 'Hydrogen fuel-cell CHP (plus BHP air conditioning)'}</h3>
+        <p>{'华森主推的分布式燃气重整制氢热电联供：输入目标功率、燃气价与替代电价，直接出需气量、可回收余热、设备投资与静态回收期。第二个标签页是燃气热泵空调 BHP 的冷量与燃料对比；沼气发电、提纯与内燃机发电作为补充选项排在后面。填不全也没关系，每个计算器都用默认值先给一个数量级。' if not en else 'Our core offer: distributed gas-reforming hydrogen CHP. Enter target output, gas price and displaced power price to get gas demand, recoverable heat, capex and payback. The second tab covers BHP cooling versus the displaced electric option; biogas power, upgrading and engine options follow as supplements. Defaults give a first-order answer even if some data is missing.'}</p>
         <div class="meta">{'界面为中文，公式通用 · 数据不上传' if not en else 'Chinese interface, universal formulas · nothing uploaded'}</div>
-        <a class="btn" href="{r}tools/biogas.html">{'打开计算器' if not en else 'Open the calculators'}</a>
+        <a class="btn" href="{r}tools/biogas.html#tool6">{'打开计算器' if not en else 'Open the calculators'}</a>
       </article>
       <div style="grid-column:1/-1;margin-top:4px;padding-top:20px;border-top:1px solid var(--line)">
         <p style="margin:0 0 2px;color:var(--ink-2);font-size:14px"><b>{'专业版测算' if not en else 'Detailed calculators'}</b>{'：数据项多、口径细，适合手上有项目基础数据时再用；数据不全先跳过，用上面的计算器估个大概就够。' if not en else ': more inputs and a finer basis. Use them when you already have project data; if data is incomplete, skip them and use the simple calculators above for a first estimate.'}</p>

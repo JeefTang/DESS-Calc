@@ -356,7 +356,7 @@
       set("q_out", nf(pick.kw, 0) + " kW");
       set("q_ann", nf(pick.kw * 8000 * load / 100 / 1000, 0) + " MWh/yr");
       set("q_heat", nf(fuelKW * heatFrac, 0) + " kW");
-      set("q_ch4", nf(pick.ch4, 0) + " Nm³/h");
+      set("q_ch4need", nf(pick.ch4, 0) + " Nm³/h");
     } else {
       var kW = availCH4 * CH4_KWH_PER_NM3 * eff;
       set("q_model", "< 500 kW");
@@ -365,7 +365,7 @@
       set("q_out", nf(kW, 0) + " kW");
       set("q_ann", nf(kW * 8000 * load / 100 / 1000, 0) + " MWh/yr");
       set("q_heat", nf(availCH4 * CH4_KWH_PER_NM3 * heatFrac, 0) + " kW");
-      set("q_ch4", nf(availCH4, 0) + " Nm³/h");
+      set("q_ch4need", nf(availCH4, 0) + " Nm³/h");
     }
 
     var msgs = [];
