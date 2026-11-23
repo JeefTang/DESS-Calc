@@ -112,8 +112,7 @@ def footer(lang, depth):
         <li><a href="{lr}contact.html">联系我们</a></li>'''
         contact = '''<li>安徽华森氢能源科技有限公司</li>
         <li>商务咨询：刘洋　<a href="tel:+8613252949897">132 5294 9897</a></li>
-        <li>生产基地：安徽省宣城市泾县琴溪路 18 号</li>
-        <li><a href="tel:+8619565726668">195-6572-6668</a>　<a href="mailto:Hopco@hpkdq.com">Hopco@hpkdq.com</a></li>'''
+        <li>生产基地：安徽省宣城市泾县琴溪路 18 号</li>'''
         copy = f'<span>© <span id="year">2026</span> 安徽华森氢能源科技有限公司</span><span>参数为参考值，具体以气样分析、技术协议与正式报价为准。</span>'
         tools = f'<li><a href="{lr}tools/">CHP 工程测算工具</a></li><li><a href="{lr}tools/biogas.html">沼气工程计算器</a></li>'
     else:
@@ -127,8 +126,7 @@ def footer(lang, depth):
         <li><a href="{lr}contact.html">Contact</a></li>'''
         contact = '''<li>Anhui Huasen Hydrogen Energy Technology Co., Ltd.</li>
         <li>Sales: Liu Yang　<a href="tel:+8613252949897">+86 132 5294 9897</a></li>
-        <li>Production base: No. 18 Qinxi Road, Jing County, Xuancheng, Anhui, China</li>
-        <li><a href="tel:+8619565726668">+86 195-6572-6668</a>　<a href="mailto:Hopco@hpkdq.com">Hopco@hpkdq.com</a></li>'''
+        <li>Production base: No. 18 Qinxi Road, Jing County, Xuancheng, Anhui, China</li>'''
         copy = f'<span>© <span id="year">2026</span> Anhui Huasen Hydrogen Energy Technology Co., Ltd.</span><span>Figures are indicative; project values are confirmed by gas analysis, technical agreement and formal quotation.</span>'
         tools = f'<li><a href="{lr}tools/">CHP engineering calculators</a></li><li><a href="{lr}tools/biogas.html">Biogas calculators</a></li>'
     return f'''<footer class="site-footer">
@@ -993,8 +991,6 @@ def zh_contact():
         <div class="contact-line"><span class="k">电话</span><span class="v"><a href="tel:+8613252949897">132 5294 9897</a><small>项目咨询、方案与报价</small></span></div>
         <div class="contact-line"><span class="k">公司</span><span class="v">安徽华森氢能源科技有限公司</span></div>
         <div class="contact-line"><span class="k">生产基地</span><span class="v">安徽海普克电气有限公司<small>安徽省宣城市泾县琴溪路 18 号</small></span></div>
-        <div class="contact-line"><span class="k">基地电话</span><span class="v"><a href="tel:+8619565726668">195-6572-6668</a></span></div>
-        <div class="contact-line"><span class="k">邮箱</span><span class="v"><a href="mailto:Hopco@hpkdq.com">Hopco@hpkdq.com</a></span></div>
         <p class="note" style="margin-top:16px">如需现场踏勘，请提前提供地址、气源类型与大致流量，我们安排工艺与电气工程师一同到场。</p>
       </div>
       <div class="contact-card">
@@ -1029,7 +1025,7 @@ def zh_contact():
   </div>
 </section>
 '''
-    return page("zh", "contact.html", "联系我们", "安徽华森氢能源科技联系方式：商务咨询刘洋 132 5294 9897；生产基地安徽海普克电气，安徽省宣城市泾县琴溪路18号，195-6572-6668。", body)
+    return page("zh", "contact.html", "联系我们", "安徽华森氢能源科技联系方式：商务咨询刘洋 132 5294 9897；生产基地安徽海普克电气，安徽省宣城市泾县琴溪路18号。", body)
 
 
 # =====================================================================
@@ -1733,8 +1729,6 @@ def en_contact():
         <div class="contact-line"><span class="k">Phone</span><span class="v"><a href="tel:+8613252949897">+86 132 5294 9897</a><small>Project enquiry, scheme and quotation</small></span></div>
         <div class="contact-line"><span class="k">Company</span><span class="v">Anhui Huasen Hydrogen Energy Technology Co., Ltd.</span></div>
         <div class="contact-line"><span class="k">Base</span><span class="v">Anhui Hopco Electric Co., Ltd.<small>No. 18 Qinxi Road, Jing County, Xuancheng, Anhui, China</small></span></div>
-        <div class="contact-line"><span class="k">Base phone</span><span class="v"><a href="tel:+8619565726668">+86 195-6572-6668</a></span></div>
-        <div class="contact-line"><span class="k">Email</span><span class="v"><a href="mailto:Hopco@hpkdq.com">Hopco@hpkdq.com</a></span></div>
         <p class="note" style="margin-top:16px">For a site visit, please send the address, gas source and approximate flow in advance; we will bring both process and electrical engineers.</p>
       </div>
       <div class="contact-card">
@@ -1769,7 +1763,7 @@ def en_contact():
   </div>
 </section>
 '''
-    return page("en", "contact.html", "Contact", "Contact Anhui Huasen Hydrogen Energy: sales Liu Yang +86 132 5294 9897; production base Anhui Hopco Electric, No. 18 Qinxi Road, Jing County, Xuancheng, Anhui; +86 195-6572-6668.", body)
+    return page("en", "contact.html", "Contact", "Contact Anhui Huasen Hydrogen Energy: sales Liu Yang +86 132 5294 9897; production base Anhui Hopco Electric, No. 18 Qinxi Road, Jing County, Xuancheng, Anhui.", body)
 
 
 # =====================================================================
