@@ -407,13 +407,13 @@ def zh_home():
     <div class="split">
       <div>
         <span class="eyebrow">样板与场景</span>
-        <h2 style="font-size:32px;margin:12px 0 14px">寒区猪场，余热回罐</h2>
-        <p class="lead">黑龙江宝泉岭，常年存栏 9,000 头以上规模化猪场。粪污厌氧发酵产沼气，配置 120–150 kW 沼气重整制氢热电联产机组。</p>
+        <h2 style="font-size:32px;margin:12px 0 14px">猪场沼气，制氢又供热</h2>
+        <p class="lead">温氏规模化养猪场：粪污厌氧发酵产沼气，深度脱硫后蒸汽重整制氢，配套 100 kW 燃料电池热电联产机组。</p>
         <ul class="checklist">
-          <li>年发电约 105–131 万 kWh，余热 150–250 kW</li>
-          <li>余热回用发酵罐增温，最冷月需求 80–120 kW</li>
-          <li>破解北方寒区沼气池冬季产气衰减 70–90% 的行业难题</li>
-          <li>已获黑龙江省农业科学院推荐</li>
+          <li>额定 100 kW，年运行 ≥8,000 小时，年发电约 80 万 kWh</li>
+          <li>发电效率 ≥40%，热电综合利用率 ≥85%</li>
+          <li>余热回用沼气池保温与场区生活热水，稳定冬季产气</li>
+          <li>已获安徽省农业科学院推荐</li>
         </ul>
         <a class="btn ghost" href="cases.html">更多案例与场景</a>
       </div>
@@ -834,13 +834,13 @@ def zh_cases():
     <div class="grid g2">
       <article class="card">
         <span class="num">示范项目 · 已获推荐</span>
-        <h3>黑龙江宝泉岭寒区猪场沼气重整制氢 CHP</h3>
-        <p>依托常年存栏 9,000 头以上规模化猪场，粪污厌氧发酵产沼气，配置 120–150 kW 热电联产机组。</p>
+        <h3>温氏养猪场沼气重整制氢热电联产</h3>
+        <p>以温氏规模化养猪场粪污厌氧发酵沼气为原料，深度脱硫至总硫 &lt;50 ppb 后蒸汽重整制氢，配置 100 kW 燃料电池热电联产机组。</p>
         <ul class="checklist" style="margin-top:14px">
-          <li>年发电约 105–131 万 kWh，余热 150–250 kW</li>
-          <li>余热回用发酵罐增温，最冷月需求 80–120 kW</li>
-          <li>破解寒区沼气池冬季产气衰减 70–90% 的行业难题</li>
-          <li>已获黑龙江省农业科学院推荐</li>
+          <li>额定电功率 100 kW，操作弹性 30%–110%，年运行 ≥8,000 小时</li>
+          <li>发电效率 ≥40%，热电综合利用率 ≥85%</li>
+          <li>余热供沼气池保温与场区生活热水</li>
+          <li>已获安徽省农业科学院推荐</li>
         </ul>
       </article>
       <article class="card">
@@ -881,7 +881,7 @@ def zh_cases():
   </div>
 </section>
 '''
-    return page("zh", "cases.html", "案例与场景", "华森氢能案例：黑龙江宝泉岭寒区猪场沼气重整制氢 CHP 示范，油田伴生气、园区天然气与东南亚棕榈油厂 POME 沼气典型场景。", body)
+    return page("zh", "cases.html", "案例与场景", "华森氢能案例：温氏养猪场沼气重整制氢热电联产示范，油田伴生气、园区天然气与东南亚棕榈油厂 POME 沼气典型场景。", body)
 
 
 def zh_about():
@@ -924,7 +924,7 @@ def zh_about():
           <tr><td><b>西安热工院</b></td><td>超级碱性电解制氢、低温低压合成氨技术</td></tr>
           <tr><td><b>合肥远景常现</b></td><td>智慧微能网 AI 边缘计算与管控平台</td></tr>
           <tr><td><b>安徽海普克电气有限公司</b></td><td>燃料电池热电联供装置制造与成套</td></tr>
-          <tr><td><b>黑龙江省农业科学院</b></td><td>寒区沼气 CHP 示范项目推荐与技术论证</td></tr>
+          <tr><td><b>安徽省农业科学院</b></td><td>沼气 CHP 项目推荐与技术论证</td></tr>
         </tbody>
       </table>
     </div>
@@ -1175,13 +1175,13 @@ def en_home():
     <div class="split">
       <div>
         <span class="eyebrow">Reference &amp; scenarios</span>
-        <h2 style="font-size:32px;margin:12px 0 14px">A cold-region pig farm, heated by its own CHP</h2>
-        <p class="lead">Baiquanling, Heilongjiang: a pig farm with more than 9,000 head. Manure is digested to biogas and fed to a 120–150 kW reforming fuel-cell CHP unit.</p>
+        <h2 style="font-size:32px;margin:12px 0 14px">A pig farm producing its own hydrogen and heat</h2>
+        <p class="lead">Wens pig farm: manure is digested to biogas, deeply desulphurised and steam-reformed into hydrogen, feeding a 100 kW fuel-cell CHP unit.</p>
         <ul class="checklist">
-          <li>About 1.05–1.31 million kWh generated per year; 150–250 kW of recoverable heat</li>
-          <li>Heat returned to the digester; coldest-month demand 80–120 kW</li>
-          <li>Solves the 70–90% winter gas-output drop typical of cold-region digesters</li>
-          <li>Recommended by the Heilongjiang Academy of Agricultural Sciences</li>
+          <li>100 kW rated; ≥8,000 operating hours a year, about 800,000 kWh generated</li>
+          <li>≥40% electrical efficiency, ≥85% overall CHP efficiency</li>
+          <li>Heat returned to the digester and for site hot water, stabilising winter gas output</li>
+          <li>Recommended by the Anhui Academy of Agricultural Sciences</li>
         </ul>
         <a class="btn ghost" href="cases.html">More cases and scenarios</a>
       </div>
@@ -1572,13 +1572,13 @@ def en_cases():
     <div class="grid g2">
       <article class="card">
         <span class="num">DEMONSTRATION · RECOMMENDED</span>
-        <h3>Cold-region pig farm biogas reforming CHP, Baiquanling</h3>
-        <p>A pig farm with more than 9,000 head in Heilongjiang. Manure is digested to biogas and fed to a 120–150 kW CHP unit.</p>
+        <h3>Wens pig farm biogas reforming hydrogen CHP</h3>
+        <p>Biogas from manure digestion at a large Wens pig farm is desulphurised to below 50 ppb total sulphur, steam-reformed to hydrogen and fed to a 100 kW fuel-cell CHP unit.</p>
         <ul class="checklist" style="margin-top:14px">
-          <li>About 1.05–1.31 million kWh per year; 150–250 kW recoverable heat</li>
-          <li>Heat returned to the digester; 80–120 kW needed in the coldest month</li>
-          <li>Solves the 70–90% winter gas-output drop in cold-region digesters</li>
-          <li>Recommended by the Heilongjiang Academy of Agricultural Sciences</li>
+          <li>100 kW rated, 30%–110% turndown, ≥8,000 operating hours a year</li>
+          <li>≥40% electrical efficiency, ≥85% overall CHP efficiency</li>
+          <li>Heat for digester warming and site hot water</li>
+          <li>Recommended by the Anhui Academy of Agricultural Sciences</li>
         </ul>
       </article>
       <article class="card">
@@ -1619,7 +1619,7 @@ def en_cases():
   </div>
 </section>
 '''
-    return page("en", "cases.html", "Cases and scenarios", "Huasen Hydrogen cases: cold-region pig farm biogas reforming CHP demonstration in Heilongjiang, plus oilfield associated gas, park natural gas and Southeast Asian POME biogas scenarios.", body)
+    return page("en", "cases.html", "Cases and scenarios", "Huasen Hydrogen cases: Wens pig farm biogas reforming hydrogen CHP demonstration, plus oilfield associated gas, park natural gas and Southeast Asian POME biogas scenarios.", body)
 
 
 def en_about():
@@ -1662,7 +1662,7 @@ def en_about():
           <tr><td><b>Xi’an Thermal Power Research Institute</b></td><td>Advanced alkaline electrolysis and low-pressure ammonia synthesis</td></tr>
           <tr><td><b>Hefei Yuanjing Changxian</b></td><td>AI edge computing and control platform for smart microgrids</td></tr>
           <tr><td><b>Anhui Hopco Electric Co., Ltd.</b></td><td>Manufacturing and packaging of fuel-cell CHP units</td></tr>
-          <tr><td><b>Heilongjiang Academy of Agricultural Sciences</b></td><td>Recommendation and technical review for cold-region biogas CHP demonstration</td></tr>
+          <tr><td><b>Anhui Academy of Agricultural Sciences</b></td><td>Recommendation and technical review for biogas CHP projects</td></tr>
         </tbody>
       </table>
     </div>
