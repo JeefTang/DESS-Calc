@@ -37,7 +37,7 @@
 |---|---|
 | `tools/chp-industrial.html` | 工业版：百千瓦级重整制氢 CHP，协议口径 |
 | `tools/chp-residential.html` | 民用版：别墅 / 自建房 |
-| `tools/biogas.html` | 沼气工程 7 个计算器（发电、选型、提纯、经济性、CHP、BHP） |
+| `tools/biogas.html` | 沼气工程 6 个计算器（CHP、BHP、内燃机发电、内燃机选型与经济性、压榨→沼气、提纯收率）；内燃机的项目经济性并入“选型与经济性”，不再单列 |
 | `tools/calc.js` | 沼气计算器脚本（纯前端） |
 | `tools/selfcheck*.js` | 原自检脚本 |
 

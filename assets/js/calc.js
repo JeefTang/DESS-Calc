@@ -60,15 +60,34 @@
     warn("t1_warn", msgs.join(" "));
   }
 
-  /* ---------------------------------------------------------- tool 2 */
+  /* --------------------------------------------- tool 2 · engine sizing + economics */
   function tool2() {
     var kW = val("t2_kw"), ch4 = val("t2_ch4"), eff = val("t2_eff"), load = val("t2_load");
+    var hours = val("t2_hours", 8000);
+    var capexPerKW = val("t2_capex", 2200), tariff = val("t2_tariff"), use = val("t2_use", 100);
+    var fx = val("t2_fx") || 1, om = val("t2_om"), omfix = val("t2_omfix"), disc = val("t2_disc") / 100;
+
     var fuelKW = kW / (eff / 100);
     var flow = ch4 > 0 ? fuelKW / (ch4 / 100) / CH4_KWH_PER_NM3 : 0;
     var flowDay = flow * 24;
     var avg = flow * load / 100;
     var ch4flow = flow * ch4 / 100;
-    var year = avg * 8000;
+    var year = avg * hours;
+
+    var gen = kW * hours * load / 100;
+    var capex = kW * capexPerKW;
+    var tariffUSD = tariff / fx;
+    var revUSD = gen * (use / 100) * tariffUSD;
+    var opexUSD = gen * om + omfix;
+    var netUSD = revUSD - opexUSD;
+    var payback = netUSD > 0 ? capex / netUSD : Infinity;
+
+    var npv = -capex;
+    for (var t = 1; t <= 10; t++) npv += netUSD / Math.pow(1 + disc, t);
+    var cum10 = netUSD * 10 - capex;
+    var r = irr(capex, netUSD, 10);
+    var crf = disc > 0 ? (disc * Math.pow(1 + disc, 10)) / (Math.pow(1 + disc, 10) - 1) : 0.1;
+    var lcoe = gen > 0 ? (capex * crf + opexUSD) / gen : 0;
 
     set("t2_flow", nf(flow, 0) + " Nm³/h");
     set("t2_day", nf(flowDay, 0) + " Nm³/day");
@@ -77,9 +96,24 @@
     set("t2_energy", nf(fuelKW, 0) + " kW");
     set("t2_year", nf(year / 1000000, 2) + " million Nm³/yr");
 
+    set("t2_total_capex", cny(capex * fx, 1) + "（US$ " + nf(capex / 10000, 0) + " 万）");
+    set("t2_gen", nf(gen / 1000, 0) + " MWh/yr");
+    set("t2_rev", cny(revUSD * fx, 1) + "/年");
+    set("t2_opex", cny(opexUSD * fx, 1) + "/年");
+    set("t2_net", cny(netUSD * fx, 1) + "/年");
+    set("t2_payback", isFinite(payback) ? nf(payback, 2) + " 年" : "无法回收");
+    set("t2_cum10", cny(cum10 * fx, 1));
+    set("t2_npv", cny(npv * fx, 1));
+    set("t2_irr", isFinite(r) ? nf(r * 100, 1) + "%" : "n/a");
+    set("t2_lcoe", "¥ " + nf(lcoe * fx, 3) + "/kWh");
+
     var msgs = [];
     if (ch4 < 45) msgs.push("At this methane content the engine is outside its fuel specification: check the manufacturer's derating curve.");
     if (eff > 42) msgs.push("Efficiency above 42% is at the top of the range for gas engines — verify it is not a lower-heating-value claim.");
+    if (netUSD <= 0) msgs.push("Negative annual net cash flow at these prices and capex — the payback never closes. Check the displaced power price, self-use share and capex scope.");
+    if (use > 90) msgs.push("Assuming almost all output displaces bought power is optimistic unless the mill runs a steady 24-hour load.");
+    if (capexPerKW < 600) msgs.push("Capex below US$600/kW is likely engine-only, not a complete plant — civils, gas treatment and grid connection are usually excluded.");
+    if (payback < 2) msgs.push("Payback under 2 years is unusual for a complete plant — check that capex includes pond cover, gas treatment, civils and grid connection.");
     warn("t2_warn", msgs.join(" "));
   }
 
@@ -133,7 +167,7 @@
     set("t4_diesel", nf(diesel, 0) + " L/h equivalent");
   }
 
-  /* ---------------------------------------------------------- tool 5 */
+  /* ---------------------------------------------------------- finance helpers */
   function irr(capex, annual, years) {
     function npv(r) {
       var s = -capex;
@@ -147,45 +181,6 @@
       if (npv(lo) * npv(mid) <= 0) hi = mid; else lo = mid;
     }
     return (lo + hi) / 2;
-  }
-
-  function tool5() {
-    var kw = val("t5_kw"), capexPerKW = val("t5_capex");
-    var tariff = val("t5_tariff"), fx = val("t5_fx") || 1;
-    var hours = val("t5_hours"), om = val("t5_om"), omfix = val("t5_omfix"), use = val("t5_use");
-    var disc = val("t5_disc") / 100;
-
-    var capex = kw * capexPerKW;
-    var tariffUSD = tariff / fx;
-    var gen = kw * hours;
-    var revUSD = gen * (use / 100) * tariffUSD;
-    var opexUSD = gen * om + omfix;
-    var netUSD = revUSD - opexUSD;
-    var payback = netUSD > 0 ? capex / netUSD : Infinity;
-
-    var npv = -capex;
-    for (var t = 1; t <= 10; t++) npv += netUSD / Math.pow(1 + disc, t);
-    var cum10 = netUSD * 10 - capex;
-    var r = irr(capex, netUSD, 10);
-    var crf = disc > 0 ? (disc * Math.pow(1 + disc, 10)) / (Math.pow(1 + disc, 10) - 1) : 0.1;
-    var lcoe = gen > 0 ? (capex * crf + opexUSD) / gen : 0;
-
-    set("t5_total_capex", cny(capex * fx, 1) + "（US$ " + nf(capex / 10000, 0) + " 万）");
-    set("t5_gen", nf(gen / 1000, 0) + " MWh/yr");
-    set("t5_rev", cny(revUSD * fx, 1) + "/年");
-    set("t5_opex", cny(opexUSD * fx, 1) + "/年");
-    set("t5_net", cny(netUSD * fx, 1) + "/年");
-    set("t5_payback", isFinite(payback) ? nf(payback, 2) + " 年" : "无法回收");
-    set("t5_cum10", cny(cum10 * fx, 1));
-    set("t5_npv", cny(npv * fx, 1));
-    set("t5_irr", isFinite(r) ? nf(r * 100, 1) + "%" : "n/a");
-    set("t5_lcoe", "¥ " + nf(lcoe * fx, 3) + "/kWh");
-
-    var msgs = [];
-    if (use > 90) msgs.push("Assuming almost all output displaces bought power is optimistic unless the mill runs a steady 24-hour load.");
-    if (capexPerKW < 600) msgs.push("Capex below US$600/kW is likely engine-only, not a complete plant — civils, gas treatment and grid connection are usually excluded.");
-    if (payback < 2) msgs.push("Payback under 2 years is unusual for a complete plant — check that capex includes pond cover, gas treatment, civils and grid connection.");
-    warn("t5_warn", msgs.join(" "));
   }
 
   /* ---------------------------------------------------------- tool 6 · H2 fuel-cell CHP */
@@ -375,7 +370,7 @@
   }
 
   /* ---------------------------------------------------------- wiring */
-  var CALCS = { quick: quick, tool1: tool1, tool2: tool2, tool3: tool3, tool4: tool4, tool5: tool5, tool6: tool6, tool7: tool7 };
+  var CALCS = { quick: quick, tool1: tool1, tool2: tool2, tool3: tool3, tool4: tool4, tool6: tool6, tool7: tool7 };
 
   function runAll() { Object.keys(CALCS).forEach(function (k) { CALCS[k](); }); }
 

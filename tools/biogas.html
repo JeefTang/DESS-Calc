@@ -35,7 +35,7 @@
   <div class="wrap">
     <p class="eyebrow">工程测算工具</p>
     <h1>CHP 热电联产与燃气空调测算</h1>
-    <p class="lead">默认进入氢燃料电池 CHP（分布式燃气重整制氢热电联供），第二个是燃气热泵空调 BHP；沼气发电与提纯、内燃机发电作为补充选项放在后面。公式与我们的预可研一致，假设全部摊开、可改。</p>
+    <p class="lead">默认进入氢燃料电池 CHP（分布式燃气重整制氢热电联供），第二个是燃气热泵空调 BHP；沼气发电与提纯、内燃机发电作为补充选项放在后面。内燃机的容量选型与项目经济性合并在同一页，不再单列经济性测算。公式与我们的预可研一致，假设全部摊开、可改。</p>
   </div>
 </section>
 
@@ -47,10 +47,9 @@
       <button class="tab-btn active" data-tab="tool6">1 · 氢燃料电池 CHP</button>
       <button class="tab-btn" data-tab="tool7">2 · 燃气热泵空调 BHP</button>
       <button class="tab-btn" data-tab="tool1">3 · 内燃机发电（可选）</button>
-      <button class="tab-btn" data-tab="tool2">4 · 内燃机容量选型</button>
+      <button class="tab-btn" data-tab="tool2">4 · 内燃机选型与经济性</button>
       <button class="tab-btn" data-tab="tool3">5 · 压榨量→沼气</button>
       <button class="tab-btn" data-tab="tool4">6 · 提纯收率</button>
-      <button class="tab-btn" data-tab="tool5">7 · 项目经济性</button>
     </div>
 
     <div class="tab-panel active" id="tool6">
@@ -196,7 +195,7 @@
 
     <div class="tab-panel" id="tool2">
       <div class="tool-head">
-        <div><p class="eyebrow">工具 04</p><h2>目标功率 → 需气量（内燃机，可选）</h2></div>
+        <div><p class="eyebrow">工具 04</p><h2>内燃机选型与经济性：功率 → 需气量 → 回收期</h2></div>
         <div class="tool-actions"><button class="btn ghost sm" onclick="window.print()">打印 / 存为 PDF</button><button class="btn sm" onclick="copySummary('tool2')">复制结果</button></div>
       </div>
       <div class="calc">
@@ -204,7 +203,16 @@
           <div class="field"><label for="t2_kw">目标发电功率（kW）</label><input id="t2_kw" type="number" value="600" step="10" min="0"></div>
           <div class="field"><label for="t2_ch4">甲烷含量（%）</label><input id="t2_ch4" type="number" value="60" step="0.5" min="40" max="99"></div>
           <div class="field"><label for="t2_eff">发电效率（%）</label><input id="t2_eff" type="number" value="35.2" step="0.1" min="20" max="45"><div class="hint">按厂家气耗，每方甲烷约 3.50 kWh 电。</div></div>
-          <div class="field"><label for="t2_load">平均负荷率（%）</label><input id="t2_load" type="number" value="85" step="1" min="10" max="100"><div class="hint">按满负荷计算；平均耗气随负荷折算。</div></div>
+          <div class="field"><label for="t2_load">平均负荷率（%）</label><input id="t2_load" type="number" value="85" step="1" min="10" max="100"><div class="hint">按满负荷计算气量；年耗气与年发电量按负荷率折算。</div></div>
+          <div class="field"><label for="t2_hours">年运行小时</label><input id="t2_hours" type="number" value="8000" step="100" min="0" max="8760"></div>
+          <div class="field" style="margin-top:24px;padding-top:18px;border-top:1px dashed #d6e2e8"><label style="color:var(--brand);letter-spacing:.02em">项目经济性</label><div class="hint">以下只影响投资与回收期，不影响上面的气量。</div></div>
+          <div class="field"><label for="t2_capex">交钥匙投资（美元/kW）</label><input id="t2_capex" type="number" value="2200" step="50" min="0"><div class="hint">机组成套 FOB 约 580–630 美元/kW（600–800 kW）；完整电站通常 1,800–2,600 美元/kW。</div></div>
+          <div class="field"><label for="t2_tariff">电价价值（元/kWh）</label><input id="t2_tariff" type="number" value="0.65" step="0.01" min="0"><div class="hint">工商业市电 0.60–0.90；离网柴油发电 2.00–3.00。填真实能省下的成本。</div></div>
+          <div class="field"><label for="t2_use">替代外购电的比例（%）</label><input id="t2_use" type="number" value="75" step="5" min="0" max="100"><div class="hint">只有自用的电量才享受完整的替代价值。</div></div>
+          <div class="field"><label for="t2_fx">汇率（人民币/美元）</label><input id="t2_fx" type="number" value="7.2" step="0.01" min="1"></div>
+          <div class="field"><label for="t2_om">可变运维（美元/kWh）</label><input id="t2_om" type="number" value="0.0169" step="0.0001" min="0"><div class="hint">全包运维（含大修）约 0.017 美元/kWh。</div></div>
+          <div class="field"><label for="t2_omfix">固定运维（美元/年）</label><input id="t2_omfix" type="number" value="0" step="1000" min="0"></div>
+          <div class="field"><label for="t2_disc">折现率（%）</label><input id="t2_disc" type="number" value="8" step="0.5" min="0" max="30"></div>
         </div>
         <div class="calc-out">
           <h3>需气量</h3>
@@ -216,8 +224,21 @@
             <div class="kv"><span>燃料输入能量</span><b id="t2_energy">—</b></div>
             <div class="kv"><span>年耗气量</span><b id="t2_year">—</b></div>
           </div>
+          <h3 style="margin-top:22px">项目经济性</h3>
+          <div class="out-grid">
+            <div class="kv"><span>总投资</span><b id="t2_total_capex">—</b></div>
+            <div class="kv"><span>年发电量</span><b id="t2_gen">—</b></div>
+            <div class="kv hl"><span>年收入</span><b id="t2_rev">—</b></div>
+            <div class="kv"><span>年运维成本</span><b id="t2_opex">—</b></div>
+            <div class="kv hl"><span>年净现金流</span><b id="t2_net">—</b></div>
+            <div class="kv hl"><span>静态回收期</span><b id="t2_payback">—</b></div>
+            <div class="kv"><span>10 年净收益（未折现）</span><b id="t2_cum10">—</b></div>
+            <div class="kv"><span>NPV（10 年）</span><b id="t2_npv">—</b></div>
+            <div class="kv"><span>IRR (10 年)</span><b id="t2_irr">—</b></div>
+            <div class="kv"><span>LCOE</span><b id="t2_lcoe">—</b></div>
+          </div>
           <div class="warn" id="t2_warn"></div>
-          <p class="note">用它检验供应商推荐的机组是否配得上你的实测气量。</p>
+          <p class="note">年耗气量 = 平均气量 × 年运行小时；年发电量 = 装机 × 年运行小时 × 负荷率。收入按可计价电量与给定电价计算，不含融资、土地与电网改造费用。仅作筛选，不可用于融资——同时用它检验供应商推荐的机组是否配得上你的实测气量与投资口径。</p>
         </div>
       </div>
     </div>
@@ -287,43 +308,6 @@
     </div>
 
     
-
-    <div class="tab-panel" id="tool5">
-      <div class="tool-head">
-        <div><p class="eyebrow">工具 07</p><h2>项目经济性</h2></div>
-        <div class="tool-actions"><button class="btn ghost sm" onclick="window.print()">打印 / 存为 PDF</button><button class="btn sm" onclick="copySummary('tool5')">复制结果</button></div>
-      </div>
-      <div class="calc">
-        <div class="calc-form">
-          <div class="field"><label for="t5_kw">电站容量（kW）</label><input id="t5_kw" type="number" value="600" step="10" min="0"></div>
-          <div class="field"><label for="t5_capex">交钥匙投资（美元/kW）</label><input id="t5_capex" type="number" value="2200" step="50" min="0"><div class="hint">机组成套 FOB 约 580–630 美元/kW（600–800 kW）；完整电站通常 1,800–2,600 美元/kW。</div></div>
-          <div class="field"><label for="t5_tariff">电价价值（元/kWh）</label><input id="t5_tariff" type="number" value="0.65" step="0.01" min="0"><div class="hint">工商业市电 0.60–0.90；离网柴油发电 2.00–3.00。填真实能省下的成本。</div></div>
-          <div class="field"><label for="t5_use">替代外购电的比例（%）</label><input id="t5_use" type="number" value="75" step="5" min="0" max="100"><div class="hint">只有自用的电量才享受完整的替代价值。</div></div>
-          <div class="field"><label for="t5_fx">汇率（人民币/美元）</label><input id="t5_fx" type="number" value="7.2" step="0.01" min="1"></div>
-          <div class="field"><label for="t5_hours">年运行小时</label><input id="t5_hours" type="number" value="8000" step="100" min="0" max="8760"></div>
-          <div class="field"><label for="t5_om">可变运维（美元/kWh）</label><input id="t5_om" type="number" value="0.0169" step="0.0001" min="0"><div class="hint">全包运维（含大修）约 0.017 美元/kWh。</div></div>
-          <div class="field"><label for="t5_omfix">固定运维（美元/年）</label><input id="t5_omfix" type="number" value="0" step="1000" min="0"></div>
-          <div class="field"><label for="t5_disc">折现率（%）</label><input id="t5_disc" type="number" value="8" step="0.5" min="0" max="30"></div>
-        </div>
-        <div class="calc-out">
-          <h3>财务摘要</h3>
-          <div class="out-grid">
-            <div class="kv"><span>总投资</span><b id="t5_total_capex">—</b></div>
-            <div class="kv"><span>年发电量</span><b id="t5_gen">—</b></div>
-            <div class="kv hl"><span>年收入</span><b id="t5_rev">—</b></div>
-            <div class="kv"><span>年运维成本</span><b id="t5_opex">—</b></div>
-            <div class="kv hl"><span>年净现金流</span><b id="t5_net">—</b></div>
-            <div class="kv hl"><span>静态回收期</span><b id="t5_payback">—</b></div>
-            <div class="kv"><span>10 年净收益（未折现）</span><b id="t5_cum10">—</b></div>
-            <div class="kv"><span>NPV</span><b id="t5_npv">—</b></div>
-            <div class="kv"><span>IRR (10 年)</span><b id="t5_irr">—</b></div>
-            <div class="kv"><span>LCOE</span><b id="t5_lcoe">—</b></div>
-          </div>
-          <div class="warn" id="t5_warn"></div>
-          <p class="note">收入按可计价电量与给定电价计算。不含融资、土地与电网改造费用。仅作筛选，不可用于融资。</p>
-        </div>
-      </div>
-    </div>
 
         <div class="assume" style="margin-top:28px">
       <b>方法与常数。</b> 甲烷低热值 35.8 MJ/Nm³ = 9.94 kWh/Nm³。沼气能量 = 流量 × 甲烷比例 × 9.94；发电功率 = 燃料能量 × 发电效率；可回收热 = 燃料能量 × 热回收比例。所有结果为参考值，性能保证只对实测现场数据出具。
