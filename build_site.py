@@ -14,7 +14,7 @@ NAV = {
     "zh": [
         ("首页", ""),
         ("重整制氢 CHP", "solutions/hydrogen-chp.html"),
-        ("沼气源空调 BHP", "solutions/bhp.html"),
+        ("燃气空调 BHP", "solutions/bhp.html"),
         ("沼气发电与提纯", "solutions/biogas.html"),
         ("核心装备", "equipment.html"),
         ("工程工具", "tools/"),
@@ -37,8 +37,8 @@ BRAND = {
 }
 CTA = {"zh": "获取方案", "en": "Request a study"}
 FOOT_DESC = {
-    "zh": "安徽华森氢能源科技有限公司，聚焦沼气、煤层气、油田伴生气与城市天然气的重整制氢热电联产，以及沼气源热泵空调 BHP，提供分布式冷、热、电联产整体解决方案。",
-    "en": "Anhui Huasen Hydrogen Energy Technology Co., Ltd. delivers distributed cooling, heating and power from biogas, coal mine gas, oilfield associated gas and city natural gas — methane reforming hydrogen CHP and biogas-driven heat-pump air conditioning (BHP).",
+    "zh": "安徽华森氢能源科技有限公司，聚焦沼气、煤层气、油田伴生气与城市天然气的重整制氢热电联产，以及燃气热泵空调 BHP，提供分布式冷、热、电联产整体解决方案。",
+    "en": "Anhui Huasen Hydrogen Energy Technology Co., Ltd. delivers distributed cooling, heating and power from biogas, coal mine gas, oilfield associated gas and city natural gas — methane reforming hydrogen CHP and gas-engine-driven heat-pump air conditioning (BHP).",
 }
 
 
@@ -103,7 +103,7 @@ def footer(lang, depth):
     lr = rel(depth - (1 if lang == "en" else 0))
     if lang == "zh":
         sol = f'''<li><a href="{lr}solutions/hydrogen-chp.html">重整制氢热电联产</a></li>
-        <li><a href="{lr}solutions/bhp.html">沼气源热泵空调 BHP</a></li>
+        <li><a href="{lr}solutions/bhp.html">燃气热泵空调 BHP</a></li>
         <li><a href="{lr}solutions/biogas.html">沼气发电与提纯</a></li>
         <li><a href="{lr}equipment.html">核心装备与供货范围</a></li>'''
         comp = f'''<li><a href="{lr}about.html">关于华森</a></li>
@@ -118,7 +118,7 @@ def footer(lang, depth):
         tools = f'<li><a href="{lr}tools/">CHP 工程测算工具</a></li><li><a href="{lr}tools/biogas.html">沼气工程计算器</a></li>'
     else:
         sol = f'''<li><a href="{lr}solutions/hydrogen-chp.html">Reforming hydrogen CHP</a></li>
-        <li><a href="{lr}solutions/bhp.html">Biogas heat-pump air-con (BHP)</a></li>
+        <li><a href="{lr}solutions/bhp.html">Gas heat-pump air-con (BHP)</a></li>
         <li><a href="{lr}solutions/biogas.html">Biogas power &amp; upgrading</a></li>
         <li><a href="{lr}equipment.html">Equipment &amp; scope</a></li>'''
         comp = f'''<li><a href="{lr}about.html">About Huasen</a></li>
@@ -250,7 +250,7 @@ def zh_home():
     <div>
       <span class="eyebrow">分布式氢能 · 冷热电联产</span>
       <h1>把每一方燃气<br>变成<em>电、热、冷</em></h1>
-      <p class="lead">沼气、煤层气、油田伴生气、城市天然气，经重整制氢进入燃料电池热电联产；沼气源热泵空调补齐制冷。从气源到末端，一套系统、一份责任。</p>
+      <p class="lead">沼气、煤层气、油田伴生气、城市天然气，经重整制氢进入燃料电池热电联产；同一组气源也能直接驱动燃气热泵空调 BHP 供冷。从气源到末端，一套系统、一份责任。</p>
       <div class="hero-actions">
         <a class="btn light" href="contact.html">获取项目方案</a>
         <a class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" href="tools/">打开工程测算工具</a>
@@ -297,6 +297,18 @@ def zh_home():
         <ul><li>CH₄ 90–99%</li><li>调压 + 精脱硫</li><li>电、热、冷三联供</li></ul>
       </article>
     </div>
+    <div class="table-wrap" style="margin-top:34px">
+      <table class="data">
+        <thead><tr><th>气源</th><th>甲烷浓度</th><th>重整制氢 CHP</th><th>燃气热泵空调 BHP</th></tr></thead>
+        <tbody>
+          <tr><td><b>沼气</b></td><td>50–65%</td><td>脱硫、脱水，CO₂ 高时脱碳，直接进重整器</td><td>脱硫脱水后提纯至 ≥97%，或配前端净化模块</td></tr>
+          <tr><td><b>煤层气 / 瓦斯</b></td><td>30–80%</td><td>浓缩或掺混、精脱硫、稳压</td><td>浓缩或掺混至 ≥90%，精脱硫、稳压</td></tr>
+          <tr><td><b>油田伴生气</b></td><td>60–90%</td><td>脱重烃、脱硫、脱水、稳压</td><td>脱重烃、脱硫、脱水、稳压</td></tr>
+          <tr><td><b>城市天然气</b></td><td>90–99%</td><td>调压、精脱硫（含加臭剂）、过滤</td><td>调压、精脱硫（含加臭剂）、过滤</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">两种产品共用同一套气源净化与稳压工程：CHP 后端要电和热，BHP 后端要冷。煤层气低于 30% 甲烷时先浓缩或掺混；BHP 按 97% 甲烷标定，低浓度气需前端提浓。具体边界以气样、流量与现场条件逐项确认。</p>
   </div>
 </section>
 
@@ -345,9 +357,9 @@ def zh_home():
           <a class="mini-link" href="solutions/hydrogen-chp.html">查看机型</a></div>
       </article>
       <article class="card prod-card">
-        <img src="assets/img/bhp/bhp-unit.svg" alt="沼气源热泵空调 BHP 室外机" style="object-fit:contain;background:#f2f7f5;padding:14px">
-        <div class="body"><span class="tag">BHP</span><h3>沼气源热泵空调</h3>
-          <p>30–480 kW，燃气发动机直驱压缩机，不靠电网制冷，余热还可出热水。</p>
+        <img src="assets/img/bhp/bhp-unit.svg" alt="燃气热泵空调 BHP 室外机" style="object-fit:contain;background:#f2f7f5;padding:14px">
+        <div class="body"><span class="tag">BHP</span><h3>燃气热泵空调</h3>
+          <p>30–480 kW，沼气、煤层气、伴生气、天然气均可驱动；发动机直驱压缩机，不靠电网制冷，余热还可出热水。</p>
           <a class="mini-link" href="solutions/bhp.html">查看机型</a></div>
       </article>
       <article class="card prod-card">
@@ -421,7 +433,7 @@ def zh_home():
   </div>
 </section>
 '''
-    return page("zh", "", "安徽华森氢能源科技 · 分布式冷热电联产", "安徽华森氢能源科技：沼气、煤层气、油田伴生气、城市天然气重整制氢热电联产 CHP，沼气源热泵空调 BHP，分布式冷热电联产整体解决方案。", body)
+    return page("zh", "", "安徽华森氢能源科技 · 分布式冷热电联产", "安徽华森氢能源科技：沼气、煤层气、油田伴生气、城市天然气重整制氢热电联产 CHP，燃气热泵空调 BHP，分布式冷热电联产整体解决方案。", body)
 
 
 def zh_chp():
@@ -441,7 +453,7 @@ def zh_chp():
       <div>
         <span class="eyebrow">技术路线</span>
         <h2 style="font-size:30px;margin:12px 0 14px">不储氢，现制现用</h2>
-        <p class="lead">天然气或沼气经净化后进入重整器，生成富氢合成气，再经变换与 PSA 提纯到燃料电池可用的氢气。氢气不装瓶、不高压储存，即产即用。</p>
+        <p class="lead">四类燃气经净化后进入重整器，生成富氢合成气，再经变换与 PSA 提纯到燃料电池可用的氢气。氢气不装瓶、不高压储存，即产即用。</p>
         <ul class="checklist">
           <li>进气要求：H₂S ≤ 20 ppm、CO₂ ≤ 20%（更高 CO₂ 需前端脱碳）</li>
           <li>产品氢 ≥70%，CO &lt; 10 ppm</li>
@@ -474,6 +486,7 @@ def zh_chp():
       </table>
     </div>
     <p class="table-note">煤层气浓度低于 30% 时，需先浓缩或与天然气掺混；具体边界按气样与流量逐项确认。</p>
+    <div class="callout" style="margin-top:22px"><b>不进重整器，也可以直接用：</b>同一组四类气源还能直接驱动 <a href="../solutions/bhp.html">BHP 燃气热泵空调</a>——沼气提纯、瓦斯浓缩或掺混、伴生气脱重烃之后，发动机直驱压缩机供冷，余热出 60–90℃ 热水。</div>
   </div>
 </section>
 
@@ -543,10 +556,10 @@ def zh_bhp():
     body = f'''
 <section class="page-head">
   <div class="wrap">
-    <div class="breadcrumb" style="color:#9fc0b4"><a href="index.html" style="color:#9fc0b4">首页</a> / 解决方案 / 沼气源热泵空调 BHP</div>
+    <div class="breadcrumb" style="color:#9fc0b4"><a href="index.html" style="color:#9fc0b4">首页</a> / 解决方案 / 燃气热泵空调 BHP</div>
     <span class="eyebrow">30–480 kW · 燃气发动机直驱</span>
-    <h1>沼气源热泵空调 BHP</h1>
-    <p class="lead">锅炉停了，空调不停。小型燃气发动机直接驱动压缩机，燃料是沼气或生物天然气，驱动链里没有电机，制冷不依赖电网。</p>
+    <h1>燃气热泵空调 BHP</h1>
+    <p class="lead">锅炉停了，空调不停。小型燃气发动机直接驱动压缩机，燃料可以是沼气、煤层气、油田伴生气或城市天然气；驱动链里没有电机，制冷不依赖电网。</p>
   </div>
 </section>
 
@@ -560,12 +573,13 @@ def zh_bhp():
         <ul class="checklist">
           <li>燃气发动机直驱开式压缩机，不经过发电机与电动机</li>
           <li>单机制冷 30–480 kW，最多 8 台并联到 MW 级</li>
-          <li>97% 甲烷进气，5–20 kPa；H₂S &lt; 10 ppm</li>
+          <li>按 97% 甲烷标定，5–20 kPa；H₂S &lt; 10 ppm</li>
+          <li>沼气提纯、瓦斯浓缩或掺混、伴生气脱重烃后均可直驱</li>
           <li>发动机余热可选回收 60–90℃ 热水</li>
           <li>撬装室外机，落地或屋顶安装，无需机房</li>
         </ul>
       </div>
-      <div class="visual"><img src="assets/img/bhp/bhp-unit.svg" alt="BHP 沼气源热泵空调室外机" style="background:#f2f7f5;padding:18px"></div>
+      <div class="visual"><img src="assets/img/bhp/bhp-unit.svg" alt="BHP 燃气热泵空调室外机" style="background:#f2f7f5;padding:18px"></div>
     </div>
   </div>
 </section>
@@ -595,6 +609,28 @@ def zh_bhp():
 <section class="section">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">气源适配</span>
+      <h2>一台机组，四种燃气</h2>
+      <p class="lead">BHP 不是只能烧沼气。发动机按 97% 甲烷标定，前端按气源配净化：沼气提纯、瓦斯浓缩或掺混、伴生气脱重烃、天然气调压脱硫。</p>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>气源</th><th>甲烷浓度</th><th>前端处理</th><th>典型场景</th></tr></thead>
+        <tbody>
+          <tr><td><b>沼气</b></td><td>50–65%</td><td>脱硫至 H₂S ≤20 ppm、脱水，提纯至 ≥97% 或配前端净化模块</td><td>养殖场、食品废水、垃圾填埋、POME</td></tr>
+          <tr><td><b>煤层气 / 瓦斯</b></td><td>30–80%</td><td>浓缩或掺混至 ≥90%，精脱硫、脱水、稳压</td><td>煤矿瓦斯泵站、瓦斯电站、矿区生活区</td></tr>
+          <tr><td><b>油田伴生气</b></td><td>60–90%</td><td>脱重烃、脱硫、脱水、稳压</td><td>边远井、集输站、放空火炬气</td></tr>
+          <tr><td><b>城市天然气</b></td><td>90–99%</td><td>调压、精脱硫（含加臭剂）、过滤</td><td>园区、酒店、医院、数据中心</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">浓度低于 30% 的煤层气需先浓缩或与天然气掺混；原沼气直接进机需提纯至 97% 甲烷。具体以气样分析与流量核算为准。</p>
+  </div>
+</section>
+
+<section class="section soft">
+  <div class="wrap">
+    <div class="section-head">
       <span class="eyebrow">机型</span>
       <h2>五个标称机型，30 到 480 kW</h2>
       <p class="lead">燃料输入按额定制冷量与燃气 COP 1.0 口径；余热为制冷模式下可回收的发动机余热，热水温升按 50 K 估算。</p>
@@ -615,7 +651,7 @@ def zh_bhp():
   </div>
 </section>
 
-<section class="section soft">
+<section class="section">
   <div class="wrap">
     <div class="section-head"><span class="eyebrow">适用场景</span><h2>哪里最适合</h2></div>
     <div class="grid g3">
@@ -623,13 +659,14 @@ def zh_bhp():
       <div class="card"><h3>食品与农产品加工</h3><p>屠宰、酿造、果蔬加工有稳定沼气与冷负荷，替代电空调与柴油机组。</p></div>
       <div class="card"><h3>园区与离网站点</h3><p>电网薄弱或增容昂贵的园区、矿区、岛屿，用燃气空调解决夏季制冷。</p></div>
       <div class="card"><h3>油气田站场</h3><p>伴生气或天然气就地驱动，为值班室、控制室与生活区供冷供热。</p></div>
+      <div class="card"><h3>煤矿与瓦斯电站</h3><p>抽采瓦斯经浓缩或掺混后驱动 BHP，为矿区办公、宿舍与井口值班室供冷供热。</p></div>
       <div class="card"><h3>数据中心与通信站</h3><p>对供电可靠性要求高，BHP 不占用电网容量，可做备用冷源。</p></div>
       <div class="card"><h3>酒店与商业</h3><p>天然气价格合适时，BHP 同时供冷与热水，降低夏季电费峰值。</p></div>
     </div>
   </div>
 </section>
 '''
-    return page("zh", "solutions/bhp.html", "沼气源热泵空调 BHP 30–480 kW", "沼气源热泵空调 BHP：燃气发动机直驱压缩机，30–480 kW，不依赖电网制冷，可回收 60–90℃ 热水，适用于养殖场、食品厂、园区与油气田。", body)
+    return page("zh", "solutions/bhp.html", "燃气热泵空调 BHP 30–480 kW", "燃气热泵空调 BHP：燃气发动机直驱压缩机，30–480 kW，可用沼气、煤层气、油田伴生气与城市天然气，不依赖电网制冷，可回收 60–90℃ 热水，适用于养殖场、食品厂、矿区、园区与油气田。", body)
 
 
 def zh_biogas():
@@ -740,7 +777,7 @@ def zh_equipment():
       <article class="card prod-card"><img src="assets/img/huasen/inside-01.jpg" alt="机组内部集成"><div class="body">
         <span class="tag">INTEGRATION</span><h3>撬内集成</h3><p>管路、阀组、控制柜、消防与报警在厂内预制，减少现场焊接。</p></div></article>
       <article class="card prod-card"><img src="assets/img/bhp/bhp-unit.svg" alt="BHP 室外机" style="object-fit:contain;background:#f2f7f5;padding:14px"><div class="body">
-        <span class="tag">BHP</span><h3>沼气源热泵空调</h3><p>30–480 kW 撬装室外机，发动机、压缩机、冷凝器与控制器一体。</p></div></article>
+        <span class="tag">BHP</span><h3>燃气热泵空调</h3><p>30–480 kW 撬装室外机，可用沼气、煤层气、伴生气与天然气；发动机、压缩机、冷凝器与控制器一体。</p></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-01.jpg" alt="沼气发电机组"><div class="body">
         <span class="tag">GAS ENGINE</span><h3>沼气发电机组</h3><p>300 kW–2 MW，集装箱或撬装，孤岛 / 并网，余热回收。</p></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-02.jpg" alt="提纯撬"><div class="body">
@@ -780,7 +817,7 @@ def zh_equipment():
   </div>
 </section>
 '''
-    return page("zh", "equipment.html", "核心装备与供货范围", "重整制氢 CHP 撬、沼气源热泵空调、沼气发电机组、提纯净化撬；安徽海普克电气制造基地，西门子 ICP、ISO 三体系与 CE 认证。", body)
+    return page("zh", "equipment.html", "核心装备与供货范围", "重整制氢 CHP 撬、燃气热泵空调、沼气发电机组、提纯净化撬；安徽海普克电气制造基地，西门子 ICP、ISO 三体系与 CE 认证。", body)
 
 
 def zh_cases():
@@ -1006,7 +1043,7 @@ def en_home():
     <div>
       <span class="eyebrow">Distributed hydrogen · CCHP</span>
       <h1>Turn every cubic metre of gas<br>into <em>power, heat and cooling</em></h1>
-      <p class="lead">Biogas, coal mine gas, oilfield associated gas and city natural gas are reformed on site into hydrogen for fuel-cell CHP. Biogas-driven heat-pump air conditioning completes the cooling side. One system, one party accountable from gas source to end use.</p>
+      <p class="lead">Biogas, coal mine gas, oilfield associated gas and city natural gas are reformed on site into hydrogen for fuel-cell CHP. The same gases can also drive gas-engine heat-pump air conditioning (BHP) for cooling. One system, one party accountable from gas source to end use.</p>
       <div class="hero-actions">
         <a class="btn light" href="contact.html">Request a project study</a>
         <a class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" href="tools/">Open engineering tools</a>
@@ -1053,6 +1090,18 @@ def en_home():
         <ul><li>CH₄ 90–99%</li><li>Pressure regulation, fine desulphurisation</li><li>Cooling, heating and power</li></ul>
       </article>
     </div>
+    <div class="table-wrap" style="margin-top:34px">
+      <table class="data">
+        <thead><tr><th>Gas source</th><th>CH₄</th><th>Reforming hydrogen CHP</th><th>Gas-engine heat-pump BHP</th></tr></thead>
+        <tbody>
+          <tr><td><b>Biogas</b></td><td>50–65%</td><td>Desulphurise, dry, remove CO₂ if high; feed the reformer</td><td>Desulphurise, dry, upgrade to ≥97% or add a front-end module</td></tr>
+          <tr><td><b>Coal mine gas / CBM</b></td><td>30–80%</td><td>Concentrate or blend, fine desulphurisation, pressure control</td><td>Concentrate or blend to ≥90%, fine desulphurisation, pressure control</td></tr>
+          <tr><td><b>Oilfield associated gas</b></td><td>60–90%</td><td>Remove heavy hydrocarbons, desulphurise, dry, regulate</td><td>Remove heavy hydrocarbons, desulphurise, dry, regulate</td></tr>
+          <tr><td><b>City natural gas</b></td><td>90–99%</td><td>Regulate pressure, fine desulphurisation (incl. odorant), filter</td><td>Regulate pressure, fine desulphurisation (incl. odorant), filter</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Both products share the same gas clean-up and pressure-control engineering: CHP delivers power and heat, BHP delivers cooling. Coal mine gas below 30% CH₄ is first concentrated or blended; BHP is rated at 97% methane, so lean gas needs front-end enrichment. Boundaries are confirmed case by case from gas analysis, flow and site conditions.</p>
   </div>
 </section>
 
@@ -1093,8 +1142,8 @@ def en_home():
     <div class="grid g4">
       <article class="card prod-card"><img src="assets/img/huasen/assembly-skid.jpg" alt="Reforming fuel-cell CHP unit"><div class="body">
         <span class="tag">CHP</span><h3>Reforming hydrogen CHP</h3><p>100–150 kW skid, power plus hot water, for biogas, mine gas, associated gas and natural gas.</p><a class="mini-link" href="solutions/hydrogen-chp.html">Models</a></div></article>
-      <article class="card prod-card"><img src="assets/img/bhp/bhp-unit.svg" alt="Biogas heat-pump air conditioner" style="object-fit:contain;background:#f2f7f5;padding:14px"><div class="body">
-        <span class="tag">BHP</span><h3>Biogas heat-pump air-con</h3><p>30–480 kW; gas engine drives the compressor directly, no grid power for cooling, with optional hot water.</p><a class="mini-link" href="solutions/bhp.html">Models</a></div></article>
+      <article class="card prod-card"><img src="assets/img/bhp/bhp-unit.svg" alt="Gas heat-pump air conditioner" style="object-fit:contain;background:#f2f7f5;padding:14px"><div class="body">
+        <span class="tag">BHP</span><h3>Gas heat-pump air-con</h3><p>30–480 kW for biogas, coal mine gas, associated gas and natural gas; engine drives the compressor directly, no grid power for cooling, with optional hot water.</p><a class="mini-link" href="solutions/bhp.html">Models</a></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-01.jpg" alt="Biogas power plant"><div class="body">
         <span class="tag">POWER</span><h3>Biogas gensets</h3><p>300 kW–2 MW, containerised or skid-mounted, island or grid parallel, with gas treatment and heat recovery.</p><a class="mini-link" href="solutions/biogas.html">Scope</a></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-02.jpg" alt="Biomethane upgrading unit"><div class="body">
@@ -1154,7 +1203,7 @@ def en_home():
   </div>
 </section>
 '''
-    return page("en", "", "Anhui Huasen Hydrogen Energy — Distributed CCHP", "Anhui Huasen Hydrogen Energy: methane reforming hydrogen CHP for biogas, coal mine gas, oilfield associated gas and city natural gas; biogas-driven heat-pump air conditioning (BHP); distributed CCHP solutions.", body)
+    return page("en", "", "Anhui Huasen Hydrogen Energy — Distributed CCHP", "Anhui Huasen Hydrogen Energy: methane reforming hydrogen CHP for biogas, coal mine gas, oilfield associated gas and city natural gas; gas-engine-driven heat-pump air conditioning (BHP); distributed CCHP solutions.", body)
 
 
 def en_chp():
@@ -1203,6 +1252,7 @@ def en_chp():
       </table>
     </div>
     <p class="table-note">Below 30% CH₄, coal mine gas needs concentration or blending with natural gas. The exact boundary is confirmed case by case from gas analysis and flow.</p>
+    <div class="callout" style="margin-top:22px"><b>It can also skip the reformer:</b> the same four gases can drive a <a href="../solutions/bhp.html">BHP gas-engine heat-pump air conditioner</a> directly — after biogas upgrading, mine-gas concentration or blending, and heavy-hydrocarbon removal from associated gas, the engine drives the compressor for cooling and yields 60–90℃ hot water.</div>
   </div>
 </section>
 
@@ -1266,8 +1316,8 @@ def en_bhp():
   <div class="wrap">
     <div class="breadcrumb" style="color:#9fc0b4"><a href="index.html" style="color:#9fc0b4">Home</a> / Solutions / BHP air-con</div>
     <span class="eyebrow">30–480 kW · engine-driven</span>
-    <h1>Biogas heat-pump air conditioning (BHP)</h1>
-    <p class="lead">When the boiler stops, the air conditioning keeps running. A small gas engine drives the compressor directly; the fuel is biogas or biomethane, and there is no electric motor in the drive train.</p>
+    <h1>Gas-engine heat-pump air conditioning (BHP)</h1>
+    <p class="lead">When the boiler stops, the air conditioning keeps running. A small gas engine drives the compressor directly; the fuel can be biogas, coal mine gas, oilfield associated gas or city natural gas, and there is no electric motor in the drive train.</p>
   </div>
 </section>
 
@@ -1281,7 +1331,8 @@ def en_bhp():
         <ul class="checklist">
           <li>Gas engine drives an open compressor — no generator, no electric motor</li>
           <li>30–480 kW per unit, up to 8 units in parallel to MW scale</li>
-          <li>97% methane at 5–20 kPa; H₂S &lt;10 ppm</li>
+          <li>Rated at 97% methane, 5–20 kPa; H₂S &lt;10 ppm</li>
+          <li>Runs on upgraded biogas, concentrated or blended mine gas, or treated associated gas</li>
           <li>Optional engine heat recovery to 60–90℃ hot water</li>
           <li>Skid-mounted outdoor unit, ground or roof, no plant room</li>
         </ul>
@@ -1311,6 +1362,24 @@ def en_bhp():
 
 <section class="section">
   <div class="wrap">
+    <div class="section-head"><span class="eyebrow">Gas compatibility</span><h2>One unit, four gases</h2><p class="lead">BHP is not limited to biogas. The engine is rated at 97% methane; the front end is configured to the source — biogas upgrading, mine-gas concentration or blending, heavy-hydrocarbon removal for associated gas, and pressure regulation plus desulphurisation for city gas.</p></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Gas source</th><th>CH₄</th><th>Front-end treatment</th><th>Typical site</th></tr></thead>
+        <tbody>
+          <tr><td><b>Biogas</b></td><td>50–65%</td><td>Desulphurise to H₂S ≤20 ppm, dry, upgrade to ≥97% or add a front-end module</td><td>Farms, food wastewater, landfill, POME</td></tr>
+          <tr><td><b>Coal mine gas / CBM</b></td><td>30–80%</td><td>Concentrate or blend to ≥90%, fine desulphurisation, drying, pressure control</td><td>Mine gas pumping stations, gas power plants, mining camps</td></tr>
+          <tr><td><b>Oilfield associated gas</b></td><td>60–90%</td><td>Remove heavy hydrocarbons, desulphurise, dry, regulate</td><td>Remote wells, gathering stations, vented/flared gas</td></tr>
+          <tr><td><b>City natural gas</b></td><td>90–99%</td><td>Regulate pressure, fine desulphurisation (incl. odorant), filter</td><td>Industrial parks, hotels, hospitals, data centres</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">Mine gas below 30% CH₄ must first be concentrated or blended with natural gas; raw biogas must be upgraded to 97% methane before entering the unit. Confirmed by gas analysis and flow calculation.</p>
+  </div>
+</section>
+
+<section class="section soft">
+  <div class="wrap">
     <div class="section-head"><span class="eyebrow">Models</span><h2>Five nominal sizes, 30 to 480 kW</h2><p class="lead">Fuel input at rated cooling and gas COP 1.0; recoverable heat is engine heat in cooling mode, with 50 K hot-water rise.</p></div>
     <div class="table-wrap">
       <table class="data">
@@ -1328,7 +1397,7 @@ def en_bhp():
   </div>
 </section>
 
-<section class="section soft">
+<section class="section">
   <div class="wrap">
     <div class="section-head"><span class="eyebrow">Applications</span><h2>Where BHP fits best</h2></div>
     <div class="grid g3">
@@ -1336,13 +1405,14 @@ def en_bhp():
       <div class="card"><h3>Food processing</h3><p>Slaughterhouses, breweries and produce plants with steady biogas and cooling demand; replaces electric air-con and diesel sets.</p></div>
       <div class="card"><h3>Parks and off-grid sites</h3><p>Weak grids or expensive capacity upgrades; gas cooling solves summer demand without adding electrical load.</p></div>
       <div class="card"><h3>Oil and gas stations</h3><p>Associated or natural gas drives cooling and heating for control rooms, offices and living quarters.</p></div>
+      <div class="card"><h3>Coal mines and gas plants</h3><p>Extracted mine gas, concentrated or blended, drives BHP for offices, dormitories and gatehouse cooling and heating.</p></div>
       <div class="card"><h3>Data and telecom sites</h3><p>High reliability requirement; BHP does not use grid capacity and can serve as backup cooling.</p></div>
       <div class="card"><h3>Hotels and commercial</h3><p>With the right gas price, BHP provides cooling and hot water and cuts summer electricity peaks.</p></div>
     </div>
   </div>
 </section>
 '''
-    return page("en", "solutions/bhp.html", "Biogas heat-pump air conditioning, 30–480 kW", "BHP biogas-driven heat-pump air conditioning: gas engine drives the compressor, 30–480 kW, no grid power for cooling, optional 60–90℃ hot water.", body)
+    return page("en", "solutions/bhp.html", "Gas-engine heat-pump air conditioning, 30–480 kW", "BHP gas-engine-driven heat-pump air conditioning: gas engine drives the compressor, 30–480 kW, runs on biogas, coal mine gas, associated gas or natural gas, no grid power for cooling, optional 60–90℃ hot water.", body)
 
 
 def en_biogas():
@@ -1449,7 +1519,7 @@ def en_equipment():
       <article class="card prod-card"><img src="assets/img/huasen/assembly-skid.jpg" alt="Reforming fuel-cell CHP unit"><div class="body"><span class="tag">CHP SKID</span><h3>Reforming CHP skid</h3><p>100–150 kW, including reformer, shift, PSA, PEMFC, heat recovery and controls.</p></div></article>
       <article class="card prod-card"><img src="assets/img/huasen/unit-compact.jpg" alt="Compact unit"><div class="body"><span class="tag">COMPACT</span><h3>Compact unit</h3><p>Small footprint for constrained farms, stations and park plant rooms.</p></div></article>
       <article class="card prod-card"><img src="assets/img/huasen/inside-01.jpg" alt="Skid internals"><div class="body"><span class="tag">INTEGRATION</span><h3>Skid integration</h3><p>Piping, valves, control cabinet, fire and alarm pre-built in the factory to cut site welding.</p></div></article>
-      <article class="card prod-card"><img src="assets/img/bhp/bhp-unit.svg" alt="BHP outdoor unit" style="object-fit:contain;background:#f2f7f5;padding:14px"><div class="body"><span class="tag">BHP</span><h3>Biogas heat-pump air-con</h3><p>30–480 kW outdoor skid with engine, compressor, condenser and controls in one frame.</p></div></article>
+      <article class="card prod-card"><img src="assets/img/bhp/bhp-unit.svg" alt="BHP outdoor unit" style="object-fit:contain;background:#f2f7f5;padding:14px"><div class="body"><span class="tag">BHP</span><h3>Gas heat-pump air-con</h3><p>30–480 kW outdoor skid with engine, compressor, condenser and controls in one frame.</p></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-01.jpg" alt="Biogas genset"><div class="body"><span class="tag">GAS ENGINE</span><h3>Biogas gensets</h3><p>300 kW–2 MW, containerised or skid-mounted, island or grid parallel, heat recovery.</p></div></article>
       <article class="card prod-card"><img src="assets/img/biogas/plant-02.jpg" alt="Upgrading skid"><div class="body"><span class="tag">UPGRADING</span><h3>Treatment and upgrading skids</h3><p>Desulphurisation, drying, CO₂ removal and boosting, combined to gas volume and quality.</p></div></article>
     </div>
@@ -1487,7 +1557,7 @@ def en_equipment():
   </div>
 </section>
 '''
-    return page("en", "equipment.html", "Core equipment and supply scope", "Reforming CHP skids, BHP biogas heat-pump air conditioning, biogas gensets and upgrading skids, manufactured at Anhui Hopco Electric with Siemens ICP, ISO and CE certification.", body)
+    return page("en", "equipment.html", "Core equipment and supply scope", "Reforming CHP skids, BHP gas heat-pump air conditioning, biogas gensets and upgrading skids, manufactured at Anhui Hopco Electric with Siemens ICP, ISO and CE certification.", body)
 
 
 def en_cases():
@@ -1741,7 +1811,7 @@ def tools_index(lang="zh", slug="tools/", depth=1):
       <article class="tool-card">
         <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">BIOGAS · 7 TOOLS</span>
         <h3>{'沼气工程计算器（7 个）' if not en else 'Biogas calculators (7 tools)'}</h3>
-        <p>{'沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、沼气热泵空调 BHP。' if not en else 'Biogas power and heat, capacity sizing, mill throughput, upgrading yield, project economics, hydrogen fuel-cell CHP and BHP air conditioning.'}</p>
+        <p>{'沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。' if not en else 'Biogas power and heat, capacity sizing, mill throughput, upgrading yield, project economics, hydrogen fuel-cell CHP and BHP air conditioning.'}</p>
         <div class="meta">{'界面为中文，公式通用' if not en else 'Chinese interface, universal formulas'}</div>
         <a class="btn" href="{r}tools/biogas.html">{'打开沼气计算器' if not en else 'Open biogas tools'}</a>
       </article>
@@ -1779,7 +1849,7 @@ def main():
         "en/tools/index.html": lambda: tools_index("en", "tools/", 2),
         "404.html": lambda: page(
             "zh", "404.html", "页面未找到",
-            "页面未找到。返回安徽华森氢能源科技官网首页，或查看重整制氢 CHP、BHP 沼气源热泵空调与工程测算工具。",
+            "页面未找到。返回安徽华森氢能源科技官网首页，或查看重整制氢 CHP、BHP 燃气热泵空调与工程测算工具。",
             f'''<section class="page-head"><div class="wrap"><span class="eyebrow">404</span><h1>这个页面不在了</h1>
 <p class="lead">链接可能已更新。你可以返回首页，或直接查看解决方案与工程工具。</p>
 <div class="hero-actions"><a class="btn light" href="index.html">返回首页</a><a class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.35)" href="tools/">工程测算工具</a></div>
