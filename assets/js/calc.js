@@ -16,9 +16,10 @@
     d = d === undefined ? 0 : d;
     return x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
-  function money(x, cur) {
-    var s = cur === "IDR" ? "Rp " : cur === "MYR" ? "RM " : "US$ ";
-    return s + nf(x, 0);
+  function cny(x, d) {
+    if (!isFinite(x)) return "—";
+    d = d === undefined ? 1 : d;
+    return Math.abs(x) >= 10000 ? "¥ " + nf(x / 10000, d) + " 万" : "¥ " + nf(x, 0);
   }
   function set(id, text) { var el = $(id); if (el) el.textContent = text; }
   function warn(id, text) {
@@ -150,7 +151,6 @@
 
   function tool5() {
     var kw = val("t5_kw"), capexPerKW = val("t5_capex");
-    var cur = ($("t5_cur") || {}).value || "MYR";
     var tariff = val("t5_tariff"), fx = val("t5_fx") || 1;
     var hours = val("t5_hours"), om = val("t5_om"), omfix = val("t5_omfix"), use = val("t5_use");
     var disc = val("t5_disc") / 100;
@@ -170,16 +170,16 @@
     var crf = disc > 0 ? (disc * Math.pow(1 + disc, 10)) / (Math.pow(1 + disc, 10) - 1) : 0.1;
     var lcoe = gen > 0 ? (capex * crf + opexUSD) / gen : 0;
 
-    set("t5_total_capex", "US$ " + nf(capex, 0) + " · " + money(capex * fx, cur));
+    set("t5_total_capex", cny(capex * fx, 1) + "（US$ " + nf(capex / 10000, 0) + " 万）");
     set("t5_gen", nf(gen / 1000, 0) + " MWh/yr");
-    set("t5_rev", "US$ " + nf(revUSD, 0) + " · " + money(revUSD * fx, cur));
-    set("t5_opex", "US$ " + nf(opexUSD, 0) + " · " + money(opexUSD * fx, cur));
-    set("t5_net", "US$ " + nf(netUSD, 0) + " · " + money(netUSD * fx, cur));
-    set("t5_payback", isFinite(payback) ? nf(payback, 2) + " years" : "not recovered");
-    set("t5_cum10", "US$ " + nf(cum10, 0));
-    set("t5_npv", "US$ " + nf(npv, 0));
+    set("t5_rev", cny(revUSD * fx, 1) + "/年");
+    set("t5_opex", cny(opexUSD * fx, 1) + "/年");
+    set("t5_net", cny(netUSD * fx, 1) + "/年");
+    set("t5_payback", isFinite(payback) ? nf(payback, 2) + " 年" : "无法回收");
+    set("t5_cum10", cny(cum10 * fx, 1));
+    set("t5_npv", cny(npv * fx, 1));
     set("t5_irr", isFinite(r) ? nf(r * 100, 1) + "%" : "n/a");
-    set("t5_lcoe", "US$ " + nf(lcoe, 3) + "/kWh");
+    set("t5_lcoe", "¥ " + nf(lcoe * fx, 3) + "/kWh");
 
     var msgs = [];
     if (use > 90) msgs.push("Assuming almost all output displaces bought power is optimistic unless the mill runs a steady 24-hour load.");
@@ -237,15 +237,15 @@
     set("t6_total", nf(eff + heat, 0) + "%");
     set("t6_gen", nf(gen / 1000, 0) + " MWh/yr");
     set("t6_heatyr", nf(heatYr / 1000, 0) + " MWh/yr");
-    set("t6_capexout", "RM " + nf(capex, 0));
-    set("t6_gascost", "RM " + nf(gasCost, 0) + "/yr");
-    set("t6_omcost", "RM " + nf(omCost, 0) + "/yr");
-    set("t6_rev", "RM " + nf(revE + revH, 0) + "/yr");
-    set("t6_net", "RM " + nf(net, 0) + "/yr");
-    set("t6_payback", isFinite(payback) ? nf(payback, 1) + " years" : "never");
-    set("t6_npv", "RM " + nf(npv, 0));
+    set("t6_capexout", cny(capex, 1));
+    set("t6_gascost", cny(gasCost, 1) + "/年");
+    set("t6_omcost", cny(omCost, 1) + "/年");
+    set("t6_rev", cny(revE + revH, 1) + "/年");
+    set("t6_net", cny(net, 1) + "/年");
+    set("t6_payback", isFinite(payback) ? nf(payback, 1) + " 年" : "无法回收");
+    set("t6_npv", cny(npv, 1));
     set("t6_irr", isFinite(r) ? nf(r * 100, 1) + "%" : "n/a");
-    set("t6_lcoe", "RM " + nf(costKWh, 3) + "/kWh");
+    set("t6_lcoe", "¥ " + nf(costKWh, 3) + "/kWh");
     set("t6_co2", nf(co2, 0) + " t/yr");
 
     var msgs = [];
@@ -253,10 +253,10 @@
     if (eff > 48) msgs.push("Electrical efficiency above 48% assumes a large SOFC; a reformer + PEM/PAFC unit is 40–45%.");
     if (kw > 100) msgs.push("Above 100 kW this range stops — " + Math.ceil(share) + " units in parallel, or a gas-engine CHP.");
     if (kw > 0 && kw < 7.5) msgs.push("Below 7.5 kW the fixed balance-of-plant dominates the price — one shared unit for several houses is usually cheaper.");
-    if (ch4pct < 90) msgs.push("Fuel gas below 90% methane needs the integrated purification front end: price at RM 19,500/kW, not RM 10,000/kW.");
+    if (ch4pct < 90) msgs.push("燃料气甲烷低于 90%：需要一体化净化前处理，造价约 3.3 万元/kW，不能套用 1.72 万元/kW 的含前处理口径。");
     if (net <= 0) msgs.push("Negative annual benefit: fuel plus O&M costs more than the power and heat it replaces. Change the fuel cost or the avoided cost — nothing else in the model fixes it.");
     if (heatP === 0 && heatKW > 0) msgs.push("Heat is valued at zero: the 43% heat output is being thrown away, which is half the reason to buy a CHP.");
-    if (tariff < 0.6 && gasP >= 1.0) msgs.push("Grid-connected at a subsidised tariff with bought gas: the economics rarely close. This product is for off-grid or high-cost power.");
+    if (tariff < 0.55 && gasP >= 2.0) msgs.push("有便宜市电、又按外购天然气计价时，这套账很难算平。产品适用于离网、电价高或沼气自产成本低的场景。");
     warn("t6_warn", msgs.join(" "));
   }
 
@@ -308,21 +308,21 @@
     set("t7_hot", nf(hot, 0) + " L/h");
     set("t7_coolyr", nf(coolYr / 1000, 0) + " MWh/yr");
     set("t7_fuelyr", nf(fuelYr, 0) + " Nm³/yr CH₄");
-    set("t7_capexout", "RM " + nf(capex, 0));
-    set("t7_gascost", "RM " + nf(gasCost, 0) + "/yr");
-    set("t7_omcost", "RM " + nf(omCost, 0) + "/yr");
+    set("t7_capexout", cny(capex, 1));
+    set("t7_gascost", cny(gasCost, 1) + "/年");
+    set("t7_omcost", cny(omCost, 1) + "/年");
     set("t7_altkwh", nf(altKWh, 0) + " kWh/yr");
-    set("t7_altcost", "RM " + nf(altCost, 0) + "/yr");
-    set("t7_saving", "RM " + nf(saving, 0) + "/yr");
-    set("t7_payback", isFinite(payback) ? nf(payback, 1) + " years" : "never");
-    set("t7_cost", "RM " + nf(costKWh, 3) + "/kWh");
-    set("t7_altunit", "RM " + nf(altUnit, 3) + "/kWh");
+    set("t7_altcost", cny(altCost, 1) + "/年");
+    set("t7_saving", cny(saving, 1) + "/年");
+    set("t7_payback", isFinite(payback) ? nf(payback, 1) + " 年" : "无法回收");
+    set("t7_cost", "¥ " + nf(costKWh, 3) + "/kWh");
+    set("t7_altunit", "¥ " + nf(altUnit, 3) + "/kWh");
     set("t7_co2", nf(co2, 0) + " t/yr");
 
     var msgs = [];
     if (cop > 1.2) msgs.push("Cooling COP above 1.2 on fuel LHV is optimistic for an engine-driven unit — check the guarantee sheet before quoting it.");
-    if (altType === "grid" && tariff < 0.35) msgs.push("Grid power at under RM 0.35/kWh with a reliable supply: an electric VRF system is cheaper to buy and to run. BHP earns its place where the grid is absent, unreliable, or the turbine stops.");
-    if (altType === "grid" && tariff <= 0.50) msgs.push("Grid tariff 0.35–0.50 is the honest borderline case: the case rests on cooling availability when the boiler and turbine are down, not on fuel savings alone.");
+    if (altType === "grid" && tariff < 0.35) msgs.push("可靠市电低于 0.35 元/kWh 时，电空调买得便宜、用得也便宜，BHP 只有在无电、供电不稳或余热锅炉停机时才划算。");
+    if (altType === "grid" && tariff <= 0.50) msgs.push("市电 0.35–0.50 元/kWh 属于临界区间：账要靠停机时仍能供冷来支撑，单靠省燃料费撑不住。");
     if (ch4pct < 90) msgs.push("Fuel gas below 90% methane: the engine must be derated and service intervals shorten. Price that in before comparing with a 97% biomethane case.");
     if (saving <= 0) msgs.push("No annual saving: at this fuel price the heat-pump cooling costs more to run than the system it replaces. Only availability (cooling with the grid down) justifies it.");
     warn("t7_warn", msgs.join(" "));
@@ -388,17 +388,7 @@
     var altSel = $("t7_alt");
     if (altSel) altSel.addEventListener("change", function () {
       var t = $("t7_tariff");
-      if (t) t.value = altSel.value === "diesel" ? "1.20" : "0.45";
-      runAll();
-    });
-
-    var curSel = $("t5_cur");
-    if (curSel) curSel.addEventListener("change", function () {
-      var map = { MYR: ["4.2", "0.65", "RM"], IDR: ["16000", "1500", "Rp"], USD: ["1", "0.15", "US$"] };
-      var v = map[curSel.value];
-      $("t5_fx").value = v[0];
-      $("t5_tariff").value = v[1];
-      set("t5_curlabel", v[2]);
+      if (t) t.value = altSel.value === "diesel" ? "2.20" : "0.65";
       runAll();
     });
 

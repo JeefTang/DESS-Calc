@@ -1774,8 +1774,8 @@ def tools_index(lang="zh", slug="tools/", depth=1):
     en = lang == "en"
     r = rel(depth)
     title = "工程测算工具" if not en else "Engineering calculators"
-    desc = ("华森 CHP 工业版与民用版测算工具，以及沼气发电、提纯、BHP 与项目经济性计算器。纯前端离线可用。"
-            if not en else "Huasen CHP calculators (industrial and residential) plus biogas power, upgrading, BHP and project economics calculators. Pure front-end, offline.")
+    desc = ("沼气与 CHP 工程计算器：先用简单计算器估算发电量、用气量与回收期，再用工业版、民用版做详细测算。纯前端离线可用。"
+            if not en else "Biogas and CHP engineering calculators: start with the simple calculators for output, gas use and payback, then use the industrial or residential version for detail. Pure front-end, offline.")
     body = f'''
 <section class="page-head">
   <div class="wrap">
@@ -1788,6 +1788,16 @@ def tools_index(lang="zh", slug="tools/", depth=1):
 <section class="section">
   <div class="wrap">
     <div class="tool-grid">
+      <article class="tool-card" style="grid-column:1/-1;border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,122,82,.10),var(--shadow)">
+        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">{'简单计算器 · 先算这个' if not en else 'SIMPLE CALCULATORS · START HERE'}</span>
+        <h3>{'沼气工程计算器（7 个）' if not en else 'Biogas calculators (7 tools)'}</h3>
+        <p>{'输入量不多，几分钟出结果：沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。填不全也没关系，每个计算器都用默认值先给一个数量级。' if not en else 'A handful of inputs, results in minutes: biogas power and heat, capacity sizing, mill throughput, upgrading yield, project economics, hydrogen fuel-cell CHP and BHP air conditioning. Defaults give a first-order answer even if some data is missing.'}</p>
+        <div class="meta">{'界面为中文，公式通用 · 数据不上传' if not en else 'Chinese interface, universal formulas · nothing uploaded'}</div>
+        <a class="btn" href="{r}tools/biogas.html">{'打开计算器' if not en else 'Open the calculators'}</a>
+      </article>
+      <div style="grid-column:1/-1;margin-top:4px;padding-top:20px;border-top:1px solid var(--line)">
+        <p style="margin:0 0 2px;color:var(--ink-2);font-size:14px"><b>{'专业版测算' if not en else 'Detailed calculators'}</b>{'：数据项多、口径细，适合手上有项目基础数据时再用；数据不全先跳过，用上面的计算器估个大概就够。' if not en else ': more inputs and a finer basis. Use them when you already have project data; if data is incomplete, skip them and use the simple calculators above for a first estimate.'}</p>
+      </div>
       <article class="tool-card">
         <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">CHP · INDUSTRIAL</span>
         <h3>{'工业版：重整制氢热电联产' if not en else 'Industrial: reforming hydrogen CHP'}</h3>
@@ -1801,13 +1811,6 @@ def tools_index(lang="zh", slug="tools/", depth=1):
         <p>{'按家庭电、热负荷反算机组规模与年运行成本，适合分布式户用场景的初步选型。' if not en else 'Back-calculate unit size and annual running cost from household power and heat load — for early-stage residential selection.'}</p>
         <div class="meta">{'适用：户用 / 小型商业' if not en else 'For households and small commercial'}</div>
         <a class="btn" href="{r}tools/chp-residential.html">{'打开民用版' if not en else 'Open residential'}</a>
-      </article>
-      <article class="tool-card">
-        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">BIOGAS · 7 TOOLS</span>
-        <h3>{'沼气工程计算器（7 个）' if not en else 'Biogas calculators (7 tools)'}</h3>
-        <p>{'沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。' if not en else 'Biogas power and heat, capacity sizing, mill throughput, upgrading yield, project economics, hydrogen fuel-cell CHP and BHP air conditioning.'}</p>
-        <div class="meta">{'界面为中文，公式通用' if not en else 'Chinese interface, universal formulas'}</div>
-        <a class="btn" href="{r}tools/biogas.html">{'打开沼气计算器' if not en else 'Open biogas tools'}</a>
       </article>
     </div>
     <div class="callout" style="margin-top:26px"><b>{'数据不上传：' if not en else 'Nothing is uploaded: '}</b>{'所有计算在浏览器本地完成，可离线使用。结果仅作参考，性能保证以气样分析、技术协议与厂家保证书为准。' if not en else 'All calculations run locally in the browser and work offline. Results are indicative; performance guarantees follow gas analysis, technical agreement and the manufacturer’s warranty.'}</div>

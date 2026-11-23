@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>工程测算工具 | 安徽华森氢能源科技</title>
-<meta name="description" content="华森 CHP 工业版与民用版测算工具，以及沼气发电、提纯、BHP 与项目经济性计算器。纯前端离线可用。">
+<meta name="description" content="沼气与 CHP 工程计算器：先用简单计算器估算发电量、用气量与回收期，再用工业版、民用版做详细测算。纯前端离线可用。">
 <link rel="canonical" href="https://jeeftang.github.io/DESS-Calc/tools/">
 <link rel="alternate" hreflang="zh-CN" href="https://jeeftang.github.io/DESS-Calc/tools/">
 <link rel="alternate" hreflang="en" href="https://jeeftang.github.io/DESS-Calc/../en/tools/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="安徽华森氢能源科技">
 <meta property="og:title" content="工程测算工具 | 安徽华森氢能源科技">
-<meta property="og:description" content="华森 CHP 工业版与民用版测算工具，以及沼气发电、提纯、BHP 与项目经济性计算器。纯前端离线可用。">
+<meta property="og:description" content="沼气与 CHP 工程计算器：先用简单计算器估算发电量、用气量与回收期，再用工业版、民用版做详细测算。纯前端离线可用。">
 <meta property="og:url" content="https://jeeftang.github.io/DESS-Calc/tools/">
 <meta property="og:image" content="https://jeeftang.github.io/DESS-Calc/assets/img/og-huasen.jpg">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="../assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="../assets/css/site.css">
 <script src="../assets/js/site.js" defer></script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "安徽华森氢能源科技有限公司", "alternateName": "Huasen Hydrogen", "url": "https://jeeftang.github.io/DESS-Calc/tools/", "logo": "https://jeeftang.github.io/DESS-Calc/assets/img/huasen-logo.png", "description": "华森 CHP 工业版与民用版测算工具，以及沼气发电、提纯、BHP 与项目经济性计算器。纯前端离线可用。", "address": {"@type": "PostalAddress", "streetAddress": "泾县琴溪路18号", "addressLocality": "宣城市", "addressRegion": "安徽省", "addressCountry": "CN"}, "contactPoint": {"@type": "ContactPoint", "telephone": "+86-13252949897", "contactType": "sales", "availableLanguage": ["zh-CN", "en"]}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "安徽华森氢能源科技有限公司", "alternateName": "Huasen Hydrogen", "url": "https://jeeftang.github.io/DESS-Calc/tools/", "logo": "https://jeeftang.github.io/DESS-Calc/assets/img/huasen-logo.png", "description": "沼气与 CHP 工程计算器：先用简单计算器估算发电量、用气量与回收期，再用工业版、民用版做详细测算。纯前端离线可用。", "address": {"@type": "PostalAddress", "streetAddress": "泾县琴溪路18号", "addressLocality": "宣城市", "addressRegion": "安徽省", "addressCountry": "CN"}, "contactPoint": {"@type": "ContactPoint", "telephone": "+86-13252949897", "contactType": "sales", "availableLanguage": ["zh-CN", "en"]}}</script>
 
 </head>
 <body>
@@ -52,6 +52,16 @@
 <section class="section">
   <div class="wrap">
     <div class="tool-grid">
+      <article class="tool-card" style="grid-column:1/-1;border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,122,82,.10),var(--shadow)">
+        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">简单计算器 · 先算这个</span>
+        <h3>沼气工程计算器（7 个）</h3>
+        <p>输入量不多，几分钟出结果：沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。填不全也没关系，每个计算器都用默认值先给一个数量级。</p>
+        <div class="meta">界面为中文，公式通用 · 数据不上传</div>
+        <a class="btn" href="../tools/biogas.html">打开计算器</a>
+      </article>
+      <div style="grid-column:1/-1;margin-top:4px;padding-top:20px;border-top:1px solid var(--line)">
+        <p style="margin:0 0 2px;color:var(--ink-2);font-size:14px"><b>专业版测算</b>：数据项多、口径细，适合手上有项目基础数据时再用；数据不全先跳过，用上面的计算器估个大概就够。</p>
+      </div>
       <article class="tool-card">
         <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">CHP · INDUSTRIAL</span>
         <h3>工业版：重整制氢热电联产</h3>
@@ -65,13 +75,6 @@
         <p>按家庭电、热负荷反算机组规模与年运行成本，适合分布式户用场景的初步选型。</p>
         <div class="meta">适用：户用 / 小型商业</div>
         <a class="btn" href="../tools/chp-residential.html">打开民用版</a>
-      </article>
-      <article class="tool-card">
-        <span class="num" style="font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.1em">BIOGAS · 7 TOOLS</span>
-        <h3>沼气工程计算器（7 个）</h3>
-        <p>沼气发电与余热、容量选型、压榨量产气、提纯收率、项目经济性、氢燃料电池 CHP、燃气热泵空调 BHP。</p>
-        <div class="meta">界面为中文，公式通用</div>
-        <a class="btn" href="../tools/biogas.html">打开沼气计算器</a>
       </article>
     </div>
     <div class="callout" style="margin-top:26px"><b>数据不上传：</b>所有计算在浏览器本地完成，可离线使用。结果仅作参考，性能保证以气样分析、技术协议与厂家保证书为准。</div>
