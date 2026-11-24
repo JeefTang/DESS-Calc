@@ -67,11 +67,11 @@
   /* --------------------------------------------- tool 2 · engine sizing + economics */
   /* Engine models — export list price, USD per unit (FOB, standard scope). */
   var ICE_MODELS = [
-    { kw: 500, usd: 216667 },
-    { kw: 600, usd: 234722 },
-    { kw: 700, usd: 252778 },
-    { kw: 800, usd: 288889 },
-    { kw: 1000, usd: 379167 }
+    { kw: 500, usd: 250000 },
+    { kw: 600, usd: 281250 },
+    { kw: 700, usd: 291667 },
+    { kw: 800, usd: 333333 },
+    { kw: 1000, usd: 437500 }
   ];
 
   function tool2() {
